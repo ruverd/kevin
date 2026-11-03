@@ -1,0 +1,26 @@
+{
+  "name": "kevin-voice",
+  "version": "0.1.0",
+  "description": "Local-first adaptive communication identity for agents and language models",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/ruverd/kevin.git" },
+  "homepage": "https://github.com/ruverd/kevin#readme",
+  "bugs": { "url": "https://github.com/ruverd/kevin/issues" },
+  "type": "module",
+  "bin": { "kevin": "dist/packages/cli/src/main.js" },
+  "exports": { ".": "./dist/packages/core/src/index.js" },
+  "types": "./dist/packages/core/src/index.d.ts",
+  "files": ["dist/packages", "skills", "scripts", "docs", "examples", "evals/skill-exercise.md", "CONTRIBUTING.md", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "eval": "npm run build && node dist/evals/run.js",
+    "check": "npm run test && npm run eval",
+    "kevin": "node dist/packages/cli/src/main.js",
+    "prepack": "npm run build"
+  },
+  "dependencies": { "zod": "^4.0.0" },
+  "devDependencies": { "@types/node": "^22.0.0", "typescript": "^5.7.0" }
+}

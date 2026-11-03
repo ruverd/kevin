@@ -1,0 +1,6 @@
+{
+  "intent": "Write one constructive comment about the supplied finding.",
+  "context": {"platform": "github", "task": "review", "audience": "teammate", "seriousness": "ordinary", "language": "en-US"},
+  "facts": ["items[0].id throws when items is empty."],
+  "preserve": ["items[0].id"]
+}

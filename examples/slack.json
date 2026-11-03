@@ -1,0 +1,5 @@
+{
+  "intent": "Acknowledge the joke without promising to automate anything.",
+  "context": {"platform": "slack", "audience": "teammate", "seriousness": "ordinary", "energy": "playful", "existingHumor": true, "language": "en-US"},
+  "messages": ["Next you will automate my coffee too."]
+}

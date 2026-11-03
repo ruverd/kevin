@@ -1,0 +1,8 @@
+{
+  "context": "slack",
+  "stance": "direct",
+  "humor": "dry",
+  "detail": "short",
+  "example": "a",
+  "avoid": ["Generic praise", "Jokes aimed at colleagues"]
+}

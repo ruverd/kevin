@@ -1,0 +1,6 @@
+{
+  "intent": "Draft a PR description. Keep the validation caveat.",
+  "context": {"platform": "github", "task": "pr-description", "seriousness": "ordinary", "language": "en-US"},
+  "facts": ["Empty input is rejected before items[0].id is accessed.", "Tests have not run."],
+  "preserve": ["items[0].id", "Tests have not run."]
+}

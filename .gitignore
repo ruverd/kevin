@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.kevin/
+.julius/
+*.tgz
+.env
+eval-results/
