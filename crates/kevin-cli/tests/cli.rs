@@ -14,7 +14,7 @@ fn cli_init_routing_doctor_fallback_profile_edits_skill_install_and_generation()
     );
     ok(cwd, &["init", "--language", "pt-BR"], "");
     assert!(!run(cwd, &["init"], "").status.success());
-    assert_eq!(value(cwd, &["doctor"], "")["voices"], 11);
+    assert_eq!(value(cwd, &["doctor"], "")["voices"], 12);
     fs::write(
         cwd.join("identity.json"),
         ok(cwd, &["identity", "export"], ""),
@@ -608,7 +608,8 @@ fn first_use_has_starter_voices_without_setup_and_explicit_changes_persist() {
     let cwd = dir.path();
     let list = value(cwd, &["voices", "--json"], "");
     assert_eq!(list["default"], "tony-stark");
-    assert_eq!(list["voices"].as_object().unwrap().len(), 11);
+    assert_eq!(list["voices"].as_object().unwrap().len(), 12);
+    assert_eq!(list["voices"]["chandler"]["extends"], "friendly-teammate");
     let e = value(cwd, &["reply", "--intent", "Explain this.", "--json"], "");
     assert_eq!(e["data"]["plan"]["route"]["voices"], json!(["tony-stark"]));
     assert_eq!(e["data"]["plan"]["humor"]["mode"], "off");

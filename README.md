@@ -10,7 +10,7 @@ Open source under the [MIT License](LICENSE). [Contributions are welcome](CONTRI
 
 Kevin helps AI assistants communicate in your voice, adapted to the task, audience and stakes. It combines a portable agent skill with a native Rust CLI for voice selection, local memory and provider-independent composition.
 
-Eleven developer voices are included. **`tony-stark` is the starting default**: confident, concise and quick-witted, with optional dry humor. You can use it immediately, create your own personality, or assign different voices to reviews, Slack channels and specific people.
+Twelve developer voices are included. **`tony-stark` is the starting default**: confident, concise and quick-witted, with optional dry humor. You can use it immediately, create your own personality, or assign different voices to reviews, Slack channels and specific people.
 
 No mandatory cloud account, Node/npm runtime, telemetry, database or model vendor. Generating new text still requires your host agent or an explicitly selected model adapter.
 
@@ -87,6 +87,7 @@ This returns one draft. Kevin does not post it anywhere. For agent-native genera
 | Voice ID | Best fit | Expression |
 | --- | --- | --- |
 | **`tony-stark`** | Everyday developer communication; starter default | Confident technical delivery, concise phrasing, optional dry wit |
+| `chandler` | Casual Slack exchanges and existing banter | Short spontaneous remarks, light occasional self-deprecation, responsive humor |
 | `professional-reviewer` | Code review and PR descriptions | Precise trigger, consequence and concrete next step |
 | `rubber-duck` | Debugging and explaining code | Patient questions, assumptions and small concrete examples |
 | `pragmatic-architect` | Design discussions | Constraints, meaningful tradeoffs and a concrete recommendation |
@@ -98,7 +99,7 @@ This returns one draft. Kevin does not post it anywhere. For agent-native genera
 | `dry-comedian` | Ordinary exchanges that already invite humor | Understatement and restrained irony |
 | `neutral` | An explicit base-identity voice | No added personality overlay |
 
-The Stark-inspired voice uses reusable traits, not copied dialogue, catchphrases or a claim to be the character. Humor is optional. Reviews, incidents, blocked work, tense exchanges and uncertain stakes keep humor off, even when a humorous voice is forced.
+The Stark-inspired and Chandler-inspired voices use reusable traits, not copied dialogue, catchphrases or claims to be the characters. Chandler follows an existing joke without escalating it, keeps self-deprecation light and occasional, and avoids implying incompetence or inventing personal mishaps. Humor is optional. Reviews, incidents, blocked work, tense exchanges and uncertain stakes keep humor off, even when a humorous voice is forced.
 
 ```bash
 kevin voices                         # Names and descriptions; default is marked
@@ -106,6 +107,8 @@ kevin voices --json                  # Complete configured definitions
 kevin voice default                  # Current default
 kevin voice default minimalist       # Persist a new default
 kevin voice default tony-stark        # Restore the Stark-inspired default
+kevin reply --voice chandler --platform slack --audience teammate \
+  --seriousness ordinary --energy playful --intent "Reply to the supplied joke." --prompt
 kevin reply --voice rubber-duck --intent "Explain the supplied behavior." --prompt
 ```
 
