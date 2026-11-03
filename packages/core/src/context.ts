@@ -21,6 +21,6 @@ export function analyzeContext(request: Request, config: Config): Analysis {
     context.seriousness = 'sensitive'; reasons.push('Conservative sensitive-topic detection.');
   }
   const confidence = context.seriousness === 'unknown' || context.platform === 'unknown' ? 'low' : 'supplied';
-  if (confidence === 'low') reasons.push('Incomplete context: use neutral identity unless a voice is explicit.');
+  if (confidence === 'low') reasons.push('Incomplete context: use matching configured rules or the default; unknown stakes disable humor.');
   return { context, confidence, reasons };
 }

@@ -47,10 +47,11 @@ export function routeVoice(request: Request, config: Config, analysis: Analysis)
     .sort((a, b) => b.value.priority - a.value.priority || a.index - b.index)
     .find(({ value }) => Object.entries(value.when).every(([key, value]) =>
       Object.entries(context).some(([field, actual]) => field === key && actual === value)))?.value;
-  const automatic = analysis.confidence === 'low' ? config.routing.fallback : rule?.voice ?? config.routing.fallback;
+  // A rule matches supplied fields exactly; missing unrelated metadata must not erase an explicit assignment.
+  const automatic = rule?.voice ?? config.routing.fallback;
   const name = request.voice ?? automatic;
   const reasons = [...analysis.reasons, request.voice ? `Manual voice: ${name}` : `Auto voice: ${name}`];
-  if (!request.voice && rule && analysis.confidence !== 'low') reasons.push(`Rule: ${rule.name} (${rule.priority})`);
+  if (!request.voice && rule) reasons.push(`Rule: ${rule.name} (${rule.priority})`);
   const language = Object.hasOwn(config.identity.languages, context.language) ? config.identity.languages[context.language] : undefined;
   const route: Route = {
     voices: [name, ...request.blend],
@@ -64,7 +65,7 @@ export function routeVoice(request: Request, config: Config, analysis: Analysis)
     route.descriptions.push(...resolved.descriptions);
     route.behaviors.push(...resolved.behaviors); route.avoid.push(...resolved.avoid);
   }
-  if (!request.voice && analysis.confidence !== 'low' && rule) route.traits = mergeTraits(route.traits, rule.overrides);
+  if (!request.voice && rule) route.traits = mergeTraits(route.traits, rule.overrides);
   if (context.formality !== undefined) route.traits.formality = context.formality;
   if (request.blend.length) reasons.push('Blending applies named traits in order; last explicit trait wins.');
   return route;

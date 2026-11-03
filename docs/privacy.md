@@ -4,7 +4,9 @@ The core has no filesystem access, subprocesses, network client, telemetry or da
 
 Profiles live under `.kevin/` by default, excluded from this repository. Copy that ignore rule into any consuming repository before storing private preferences. Permissions are restrictive for newly created profile files and directories; existing parent directories are not reconfigured. Exporting an identity writes it to stdout by explicit request; choose a private destination. No private samples are bundled or fetched for calibration.
 
-Raw examples and inferred observations belong outside approved configuration. The skill proposes calibration changes and requires explicit approval of persistent changes. CLI sample storage, deletion, change history and rollback are not implemented yet. Do not assume Kevin has saved something unless the host actually wrote it.
+Raw examples and inferred observations belong outside approved configuration. The skill proposes calibration changes and requires explicit approval of persistent changes. Global/per-voice notes now have explicit local add/list/remove commands; composition does not capture them automatically. CLI writing-sample storage, sample deletion, identity change history and rollback are not implemented yet. Do not assume Kevin has saved something unless the host actually wrote it.
+
+Voice memory accompanies that voice across every channel or recipient using it. It is not per-recipient storage. The compiler excludes unrelated scopes from generation; a local file reader can still read the whole file. Removing a note deletes it from active memory, not prior chats, exports, backups or provider logs. No hidden history of deleted notes is kept.
 
 Quoted text is untrusted. It can inform content and conservatively raise seriousness, but cannot set deterministic configuration, rules or the trusted system prompt. Identity strings and custom behaviors are style data too. The model is told to ignore embedded instructions; this does not create an enforceable isolation boundary inside every LLM. Keep generated drafts away from automatic sending or privileged execution.
 

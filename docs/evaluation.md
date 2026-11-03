@@ -6,7 +6,7 @@
 npm run check
 ```
 
-`npm test` builds with strict TypeScript and runs Node's built-in test runner. It includes description-driven voice proposals, question branching, example choices, and explicit-save behavior. `npm run eval` executes 15 public communication scenarios twice, once automatically and once forcing dry-comedian. Expectations cover route choice and humor constraints. A forced voice remains selected while serious-context humor is clamped off.
+`npm test` builds with strict TypeScript and runs Node's built-in test runner. It includes description-driven voice proposals, question branching, example choices, explicit-save behavior, channel/person routing and global/voice memory filtering, deletion and no implicit capture. `npm run eval` executes 15 public communication scenarios twice, once automatically and once forcing dry-comedian. Expectations cover route choice and humor constraints. A forced voice remains selected while serious-context humor is clamped off.
 
 Scenarios include automation banter, a real supplied review finding, blocked approval, production incident, sensitive disagreement, congratulations, architecture debate, casual Slack, formal email, PR description, ambiguous context, Portuguese-to-English reply, quoted injection, Portuguese incident and no-response.
 

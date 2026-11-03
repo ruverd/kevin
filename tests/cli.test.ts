@@ -124,3 +124,61 @@ test('model arguments remain literal and private stderr is not exposed', async (
   assert.deepEqual(result, { status: 'draft', text: literal });
   await assert.rejects(new CommandGenerator(process.execPath, ['-e', 'process.stderr.write("PRIVATE-TOKEN");process.exit(3)']).generate(envelope), error => error instanceof Error && !error.message.includes('PRIVATE-TOKEN'));
 });
+
+test('CLI manages channel/person assignments, applies metadata and preserves profile on invalid rules', async () => {
+  const cwd = await mkdtemp(resolve(tmpdir(), 'kevin-rules-'));
+  try {
+    assert.equal(run(cwd, ['init']).status, 0);
+    const set = run(cwd, ['rule', 'set', 'team', '--platform', 'slack', '--workspace', 'T_EXAMPLE', '--channel', 'C_EXAMPLE', '--voice', 'witty-engineer']);
+    assert.equal(set.status, 0, set.stderr);
+    const rules = JSON.parse(run(cwd, ['rules']).stdout);
+    assert.ok(rules.some((rule: { name: string }) => rule.name === 'team'));
+    const result = run(cwd, ['reply', '--json', '--platform', 'slack', '--workspace', 'T_EXAMPLE', '--channel', 'C_EXAMPLE'], 'Acknowledge.');
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).data.plan.route.voices, ['witty-engineer']);
+    assert.equal(run(cwd, ['rule', 'set', 'person', '--recipient', 'U_EXAMPLE', '--voice', 'minimalist', '--priority', '85']).status, 0);
+    const person = run(cwd, ['reply', '--json', '--recipient', 'U_EXAMPLE'], 'Acknowledge.');
+    assert.deepEqual(JSON.parse(person.stdout).data.plan.route.voices, ['minimalist']);
+    assert.equal(run(cwd, ['rule', 'set', 'team', '--channel', 'C_EXAMPLE', '--voice', 'friendly-teammate']).status, 0);
+    const before = await readFile(resolve(cwd, '.kevin/config.json'), 'utf8');
+    assert.notEqual(run(cwd, ['rule', 'set', 'bad', '--channel', 'C_EXAMPLE', '--voice', 'missing']).status, 0);
+    assert.notEqual(run(cwd, ['rule', 'set', 'bad', '--voice', 'neutral']).status, 0);
+    assert.notEqual(run(cwd, ['rule', 'set', 'bad', '--channel', 'C_EXAMPLE', '--voice', 'neutral', '--priority', 'NaN']).status, 0);
+    assert.equal(await readFile(resolve(cwd, '.kevin/config.json'), 'utf8'), before);
+    assert.equal(run(cwd, ['rule', 'remove', 'team']).status, 0);
+    assert.notEqual(run(cwd, ['rule', 'remove', 'team']).status, 0);
+  } finally { await rm(cwd, { recursive: true, force: true }); }
+});
+
+test('CLI memory has explicit writes, isolated voice scopes, deletion and no implicit capture', async () => {
+  const cwd = await mkdtemp(resolve(tmpdir(), 'kevin-memory-'));
+  try {
+    assert.equal(run(cwd, ['init']).status, 0);
+    const initial = run(cwd, ['reply', '--json'], 'Temporary conversation only.');
+    assert.equal(initial.status, 0);
+    await assert.rejects(readFile(resolve(cwd, '.kevin/memory.json')));
+    const global = run(cwd, ['memory', 'add', '--text', 'Avoid corporate filler.', '--kind', 'preference']);
+    assert.equal(global.status, 0, global.stderr);
+    const globalId = JSON.parse(global.stdout).entry.id;
+    const voice = run(cwd, ['memory', 'add', '--voice', 'minimalist', '--text', 'Private minimalist note.']);
+    assert.equal(voice.status, 0, voice.stderr);
+    const voiceId = JSON.parse(voice.stdout).entry.id;
+    const scoped = JSON.parse(run(cwd, ['reply', '--voice', 'minimalist', '--json'], 'Reply.').stdout);
+    assert.equal(scoped.data.memory.global.length, 1);
+    assert.equal(scoped.data.memory.voices[0].entries[0].id, voiceId);
+    const other = run(cwd, ['reply', '--voice', 'diplomat', '--json'], 'Reply.');
+    assert.ok(!other.stdout.includes('Private minimalist note.'));
+    assert.equal(JSON.parse(run(cwd, ['memory', 'list']).stdout).entries.length, 1);
+    assert.equal(JSON.parse(run(cwd, ['memory', 'list', '--voice', 'minimalist']).stdout).entries.length, 1);
+    const before = await readFile(resolve(cwd, '.kevin/memory.json'), 'utf8');
+    assert.notEqual(run(cwd, ['memory', 'add', '--text', 'No write.', '--voice', 'missing']).status, 0);
+    assert.notEqual(run(cwd, ['memory', 'remove', voiceId]).status, 0);
+    assert.equal(await readFile(resolve(cwd, '.kevin/memory.json'), 'utf8'), before);
+    assert.equal(run(cwd, ['memory', 'remove', voiceId, '--voice', 'minimalist']).status, 0);
+    assert.equal(run(cwd, ['memory', 'remove', globalId]).status, 0);
+    const all = JSON.parse(run(cwd, ['memory', 'list', '--all']).stdout);
+    assert.deepEqual(all.global, []);
+    assert.deepEqual(all.voices, {});
+    assert.ok(!(await readFile(resolve(cwd, '.kevin/memory.json'), 'utf8')).includes('Private minimalist note.'));
+  } finally { await rm(cwd, { recursive: true, force: true }); }
+});

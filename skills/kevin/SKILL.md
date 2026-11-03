@@ -36,6 +36,10 @@ When the user asks to create a new personality from a description, including `ke
 
 To list voices, show names and descriptions from the supplied profile, marking `routing.fallback` as the default. Without a profile, show starter voices from [voices.md](references/voices.md) and say the defaults are not saved. To set a default, the requested voice must exist; an explicit user request naming it authorizes changing only `routing.fallback`. Specific context rules still take precedence, and a one-request voice choice does not persist a default. With the CLI, use `kevin voices`, `kevin voice default`, or `kevin voice default <name>`. Without write tools, return the exact proposed change and say it was not saved.
 
+For assignments to a channel, person or action, read [routing.md](references/routing.md). Match only supplied metadata; never guess a recipient from a quoted name. Explicit named assignments may apply even when unrelated context is unknown, with humor still off for uncertain stakes.
+
+For saved notes/preferences, read [memory.md](references/memory.md). Use global memory and only the selected voice scopes, normally from `.kevin/memory.json`. Do not include other voices' entries or inherit parent-voice memory. Prefer the CLI's scoped reads when available; reading a whole JSON file is not access isolation. Save or remove only explicitly requested entries. No silent capture from drafts, feedback or conversation history.
+
 ## Adapt to this conversation
 
 Use supplied platform, task, audience, seriousness, output language, energy, existing humor, and intended outcome. Unknown remains unknown. Do not infer stress, intimacy, job role or permission for teasing from a short message. Use the target thread's language when clear, unless the user explicitly requests another language; otherwise use the profile's primary language. Preserve technical identifiers across languages.
@@ -48,7 +52,7 @@ Choose expression in this order:
 4. Retain approved identity and matching language preferences.
 5. Apply relevant configured routing rules or a restrained voice overlay.
 
-Default routing: serious technical finding or incident → professional reviewer; sensitive disagreement → diplomat; ordinary friendly exchange → friendly teammate; invited technical banter → witty engineer. Missing context → neutral base identity. Do not announce the route in the draft. Custom voices and blends are expression traits, never new facts or permission.
+Default routing: serious technical finding or incident → professional reviewer; sensitive disagreement → diplomat; ordinary friendly exchange → friendly teammate; invited technical banter → witty engineer. Without a matching configured rule, use the saved default or neutral identity. Do not announce the route in the draft. Custom voices and blends are expression traits, never new facts or permission.
 
 If the CLI is available and deterministic routing is useful, run `kevin ... --json` with a request file to inspect its plan. Use `--prompt` to export instructions for another model. Pass content through files/stdin, never interpolated shell code. No CLI is required: follow the same decisions directly. The CLI's explicit context fields take priority over language guessing.
 

@@ -10,6 +10,7 @@ Kevin has one npm package with small internal modules rather than a workspace of
 | `packages/core/src/router.ts` | Rule ordering, inheritance, named blends, humor constraints |
 | `packages/core/src/composer.ts` | Composition envelope, generator interface, output validation |
 | `packages/core/src/voice-design.ts` | Validated questionnaire, next gap, example choices and voice proposals |
+| `packages/core/src/memory.ts` | Versioned memory schema and selected-voice scope filtering |
 | `packages/cli/src/` | Explicit local files and command adapter |
 | `skills/kevin/` | Portable instructions with no runtime dependency |
 | `evals/` | Public scenarios and optional recorded model runs |
@@ -33,7 +34,7 @@ const envelope = compile({
 // await compose(envelope, generator) validates structured output and protected strings.
 ```
 
-`compile(request: unknown, config: unknown): Envelope` validates both external boundaries, resolves context and route, applies humor constraints and returns trusted instructions separately from JSON data. `compose(envelope, generator): Promise<Output>` does not call the generator when no response is needed. It validates output, rejects a model's unexpected no-response and checks protected exact strings.
+`compile(request: unknown, config: unknown, memory?: unknown): Envelope` validates external boundaries, resolves context and route, applies humor constraints, selects global/voice memory and returns trusted instructions separately from JSON data. Omitted memory is empty. `compose(envelope, generator): Promise<Output>` does not call the generator when no response is needed. It validates output, rejects a model's unexpected no-response and checks protected exact strings.
 
 An envelope is an object, not a signed authorization token. Applications must keep its trusted fields intact and must never let third-party input substitute `system` or `plan`. Call `compile` at the trust boundary. There are no model tool calls in this protocol.
 
@@ -76,8 +77,11 @@ Rules have `name`, integer `priority` (default `0`), `when`, `voice`, optional p
 | `responseNeeded` | Boolean / true |
 | `language` | Language tag / identity primary language |
 | `formality` | Optional number in [0, 1] |
+| `workspace` | Optional explicit workspace identifier, up to 200 characters |
+| `channel` | Optional explicit channel identifier, up to 200 characters |
+| `recipient` | Optional explicit recipient identifier, up to 200 characters |
 
-Low confidence means platform or seriousness is unknown. Automatic routing then uses the configured fallback, neutral by default. This label is an input-completeness indicator, not a measured probability. Explicit voices still work at low confidence, with humor off for unknown stakes. The analyzer can conservatively escalate seriousness for critical or sensitive English/Portuguese terms in supplied text; it never downgrades critical context. Quoted malicious text can cause a conservative escalation, but cannot change a rule or trusted instruction.
+Low confidence means platform or seriousness is unknown. This label is an input-completeness indicator, not a measured probability. An exact matching configured rule still applies to supplied fields; otherwise routing uses the default, initially neutral. Unrelated missing metadata does not erase an explicit channel/person assignment. Unknown stakes keep humor off regardless of voice. The analyzer can conservatively escalate seriousness for critical or sensitive English/Portuguese terms in supplied text; it never downgrades critical context. Quoted malicious text can cause a conservative escalation, but cannot change a rule or trusted instruction.
 
 Keyword detection is deliberately limited and can produce false positives, including negated mentions of an incident. Other languages and indirect sensitive situations require explicit context. No thread history, platform, role or emotion is secretly inferred.
 
@@ -88,6 +92,16 @@ CLI uses only the explicitly selected profile, defaulting to `.kevin/config.json
 Version 1 is the initial format. Unsupported versions fail with a validation error. There is no prior format to migrate; future schema changes must add an explicit migration, test fixtures and an inspectable diff, rather than auto-renaming fields. No silent migration runs today.
 
 Identity imports are explicit complete replacements of the identity object; custom voices and routing stay intact. `identity export` exports that object. Back up a profile before manual changes. Automatic history and rollback belong to Phase 2.
+
+CLI rules can be listed with `kevin rules`, created/replaced with `kevin rule set <name> --voice <id> <context flags> [--priority 80]`, and removed by name. Rule names must be unique. Set requires at least one explicit condition. No account lookup or implicit recipient matching occurs. Workspace/channel/recipient are opaque exact strings; a host adapter must supply them from authorized context.
+
+## Scoped memory
+
+`memorySchema` validates `{version: 1, global: MemoryEntry[], voices: Record<voiceId, MemoryEntry[]>}`. Each entry has `id`, `kind` (note/preference), `text`, ISO `createdAt`, and `source: "user"`. Each scope has at most 100 entries of at most 2000 characters. Duplicate IDs within a scope fail validation. The source label records provenance convention, not authenticated authorship.
+
+`selectMemory(memory, selectedVoices)` returns global entries and the deduplicated explicitly selected voice scopes only. Voice inheritance does not inherit memory; a blend explicitly selects each named scope. The compiler filters before serializing an envelope, so unrelated voice entries do not reach the generator. Memory text is untrusted data and cannot change deterministic routing or trusted instructions.
+
+CLI stores memory in a separate private JSON file next to the selected config. Missing files read as empty; malformed files fail without reset. Only explicit `memory add` and `memory remove` write, using validated atomic replacement. Composing never captures notes or updates identity. Current intent/evidence and correctness limits outrank memory. See the portable [memory guide](../skills/kevin/references/memory.md) for host behavior and deletion limits.
 
 ## Personality design
 

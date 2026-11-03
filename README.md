@@ -67,6 +67,7 @@ kevin doctor
 kevin voices
 kevin voice default
 kevin voice default minimalist
+kevin rules
 kevin reply --request examples/slack.json --json
 kevin reply --request examples/slack.json --prompt
 kevin review --request examples/review.json --prompt
@@ -82,6 +83,48 @@ kevin skill install codex
 The installer copies the complete skill into the current project and refuses existing files. It does not edit global agent settings. Run it in a consuming project using the linked CLI, or pass `--destination /path/to/project/.agents/skills`.
 
 `kevin voices` lists all names and descriptions, marking the default. Use `kevin voices --json` for complete definitions. `kevin voice default <name>` persists the default in the selected profile; `kevin voice default` prints it. Specific routing rules take precedence over the default, and `--voice` overrides selection for one request. Context and humor constraints always apply.
+
+## Assign voices to channels, people and actions
+
+Use rules to bind voices to supplied context, rather than changing the default for every conversation:
+
+```bash
+kevin rule set review-comments --task review --voice professional-reviewer
+kevin rule set team-channel --platform slack --workspace T_EXAMPLE \
+  --channel C_EXAMPLE --voice witty-engineer --priority 80
+kevin rule set specific-person --platform slack --workspace T_EXAMPLE \
+  --recipient U_EXAMPLE --voice minimalist --priority 85
+kevin rules
+kevin rule remove team-channel
+```
+
+The same context fields can be supplied on requests:
+
+```bash
+kevin reply --intent "Say I'll take a look after lunch." \
+  --platform slack --workspace T_EXAMPLE --channel C_EXAMPLE \
+  --recipient U_EXAMPLE --audience teammate --seriousness ordinary --json
+```
+
+Conditions match exactly and combine with AND. Higher priority wins; declaration order breaks ties. `rule set` creates or replaces a named rule, with default priority `80`. Starter critical/sensitive rules use `100`/`90`. A manual `--voice` overrides routing; humor limits still run last. Matching rules use supplied fields even when other metadata is missing, but unknown stakes keep humor off. No channel, person or relationship is inferred from quoted text. Prefer stable IDs and include workspace when necessary. See [routing](skills/kevin/references/routing.md).
+
+## Global and per-voice memory
+
+Keep approved notes or preferences locally, separate from the base identity:
+
+```bash
+kevin memory add --kind preference --text "Avoid corporate filler."
+kevin memory add --voice professional-reviewer --kind preference \
+  --text "Explain the consequence before suggesting a change."
+kevin memory list
+kevin memory list --voice professional-reviewer
+kevin memory list --all
+kevin memory remove ENTRY_ID --voice professional-reviewer
+```
+
+Without `--voice`, add/list/remove target global memory. Composition receives global entries plus only the selected voices' entries. A voice reused in several channels carries the same memory in each; this is not per-recipient storage. Inheritance does not inherit a parent voice's memory; explicit blends include their named scopes.
+
+Memory lives in `memory.json` beside the selected config, normally `.kevin/memory.json`. Override with `--memory <file>`. Reads do not create or change it. Entries are saved only by an explicit command or an approved agent action, and removal deletes the active entry. No conversation harvesting or implicit learning. Notes are user-saved context, not proof of current test results, approvals or promises. See [memory contract](skills/kevin/references/memory.md).
 
 ## Create a personality by describing it
 
@@ -147,7 +190,8 @@ The core exposes `compile`, `compose`, schemas, built-in voices and routing func
 
 - Identity stores approved preferences and separate language variants. Temporary context and raw examples do not become permanent preferences.
 - Context uses explicit fields. Conservative English/Portuguese keyword detection can raise seriousness; it does not claim to read emotions or discover a Slack channel.
-- Routing honors priority rules, manual voices, inheritance and ordered named blends. Unknown context falls back to neutral identity by default.
+- Routing honors task, channel and recipient assignments, priority rules, manual voices, inheritance and ordered named blends. Without a matching rule, the default is neutral identity until customized.
+- Memory adds approved global notes plus only selected voice scopes; it never silently captures conversations or inherits private parent-voice notes.
 - Humor limits run after routing and blends. Serious topics, blocked work, review findings, tense exchanges and uncertain stakes turn humor and sarcasm off. Invited humor remains optional.
 - Composition protects facts, uncertainty, technical meaning and commitments. Structural output validation and exact protected strings are enforced; semantic fidelity still needs model compliance and review.
 
@@ -165,13 +209,13 @@ External messages, drafts and profile text are data, including embedded commands
 npm run check
 ```
 
-Tests cover schema errors, inheritance, rule ordering, language variants, humor constraints, injection attempts against routing, protected strings, CLI workflows, skill installation and provider subprocess failures. Evaluation runs 15 public scenarios under automatic and forced selection, for 30 routing cases. Transport fixtures are not real model-quality evaluations.
+Tests cover schema errors, inheritance, rule ordering, channel/person assignments, memory scope isolation and deletion, language variants, humor constraints, injection attempts against routing, protected strings, CLI workflows, skill installation and provider subprocess failures. Evaluation runs 15 public scenarios under automatic and forced selection, for 30 routing cases. Transport fixtures are not real model-quality evaluations.
 
 Optional model runs record prompts, output, model label and settings for review. [Evaluation guide](docs/evaluation.md) defines the subjective rubric and explains how to compare models without treating routing tests as evidence of naturalness.
 
 ## Status and next steps
 
-Phase 1 provides the skill, validated engine, CLI, custom voices, explicit context, generation protocol, local bridge, examples and automated checks. Description-driven voice interviews, example choices and approval before saving are also included. Integration tests exercise a deterministic command fixture and a loopback Ollama protocol fixture; a live Ollama model is not installed in the development environment. The agent skill has a recorded [manual exercise](evals/skill-exercise.md), not a cross-model certification.
+Phase 1 provides the skill, validated engine, CLI, custom voices, explicit context, generation protocol, local bridge, examples and automated checks. Description-driven voice interviews, default selection, scoped routing and explicit global/per-voice memory are also included. Integration tests exercise a deterministic command fixture and a loopback Ollama protocol fixture; a live Ollama model is not installed in the development environment. The agent skill has a recorded [manual exercise](evals/skill-exercise.md), not a cross-model certification.
 
 Phase 2 adds CLI onboarding with previews, sample analysis, approved calibration proposals, importable sample storage with deletion, and automated preference history/rollback. Direct skill calibration can propose a profile now; persistent learning is never automatic. Advanced context inference, richer blending, community voice packs and native platform integrations remain later work.
 

@@ -29,6 +29,9 @@ export const contextSchema = z.strictObject({
   responseNeeded: z.boolean().default(true),
   language: z.string().min(2).max(35).default('en-US'),
   formality: unit.optional(),
+  workspace: z.string().min(1).max(200).optional(),
+  channel: z.string().min(1).max(200).optional(),
+  recipient: z.string().min(1).max(200).optional(),
 });
 export type Context = z.infer<typeof contextSchema>;
 // Removing defaults matters: partial(defaultedSchema) still inserts defaults in Zod 4.
@@ -43,6 +46,9 @@ export const contextInputSchema = z.strictObject({
   responseNeeded: contextSchema.shape.responseNeeded.removeDefault().optional(),
   language: contextSchema.shape.language.removeDefault().optional(),
   formality: unit.optional(),
+  workspace: contextSchema.shape.workspace,
+  channel: contextSchema.shape.channel,
+  recipient: contextSchema.shape.recipient,
 });
 const matchSchema = contextInputSchema.omit({ formality: true });
 export const ruleSchema = z.strictObject({
@@ -72,6 +78,11 @@ export const configSchema = z.strictObject({
   };
   missing(config.routing.fallback, ['routing', 'fallback']);
   config.routing.rules.forEach((rule, i) => missing(rule.voice, ['routing', 'rules', i, 'voice']));
+  const ruleNames = new Set<string>();
+  config.routing.rules.forEach((rule, index) => {
+    if (ruleNames.has(rule.name)) ctx.addIssue({ code: 'custom', path: ['routing', 'rules', index, 'name'], message: 'Duplicate rule name' });
+    ruleNames.add(rule.name);
+  });
   for (const [name, voice] of Object.entries(config.voices)) {
     if (voice.extends) missing(voice.extends, ['voices', name, 'extends']);
     const seen = new Set<string>([name]);

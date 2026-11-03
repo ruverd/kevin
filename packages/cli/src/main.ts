@@ -6,17 +6,24 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import {
   compile, compose, contextInputSchema, defaultConfig, designVoice, identitySchema,
-  parseConfig, renderPrompt, requestSchema, voiceSchema,
+  parseConfig, renderPrompt, requestSchema, ruleSchema, voiceSchema,
 } from '../../core/src/index.js';
 import { CommandGenerator } from './provider.js';
-import { loadConfig, readJson, saveConfig } from './storage.js';
+import { loadConfig, loadMemory, readJson, saveConfig } from './storage.js';
 import { confirmVoiceSave, interviewVoice } from './voice-wizard.js';
+import { memoryCommand } from './memory-command.js';
 
 const help = `Kevin 0.1 — One mind. Many voices. Always you.
 
 kevin init [--language pt-BR] [--style minimalist]
 kevin doctor | voices
 kevin voice default [name]                       # show or set default voice
+kevin rules                                     # list context assignments
+kevin rule set <name> --voice <voice> [context flags] [--priority 80]
+kevin rule remove <name>
+kevin memory add --text "..." [--kind note|preference] [--voice <name>]
+kevin memory list [--voice <name> | --all]
+kevin memory remove <id> [--voice <name>]
 kevin voice create <name> | voice edit <name>       # voice JSON on stdin
 kevin voice create <name> --description "..."     # guided personality interview
   [--answers <file>] [--save]                     # noninteractive proposal or save
@@ -30,6 +37,9 @@ Compose options:
   --platform <name>          slack, github, email, chat, docs, unknown
   --task <name>              reply, rewrite, review, pr-description, explain, summarize, draft
   --audience <name>          teammate, manager, external, public, unknown
+  --workspace <id>           Explicit workspace identifier (optional disambiguation)
+  --channel <id>             Explicit channel identifier; no automatic discovery
+  --recipient <id>           Explicit recipient identifier; no relationship inference
   --seriousness <level>      ordinary, sensitive, critical, unknown
   --energy <level>           calm, playful, tense, unknown
   --language <tag>           Explicit output language
@@ -41,6 +51,7 @@ Compose options:
   --model-command <exe>      Explicit local command reading envelope JSON on stdin
   --model-arg <arg>          Repeat for command arguments; no shell evaluation
   --config <file>            Default: .kevin/config.json in current directory
+  --memory <file>            Default: memory.json next to selected config
 
 No model command: emit prompt to stdout, notice to stderr. Nothing sent externally.
 Model command: selected executable receives intent, profile and supplied messages;
@@ -73,6 +84,9 @@ async function main(): Promise<void> {
       request: { type: 'string' }, intent: { type: 'string' }, platform: { type: 'string' },
       task: { type: 'string' }, audience: { type: 'string' }, seriousness: { type: 'string' },
       energy: { type: 'string' }, voice: { type: 'string' }, blend: { type: 'string', multiple: true },
+      workspace: { type: 'string' }, channel: { type: 'string' }, recipient: { type: 'string' },
+      priority: { type: 'string' },
+      memory: { type: 'string' }, text: { type: 'string' }, kind: { type: 'string' }, all: { type: 'boolean' },
       'no-humor': { type: 'boolean' }, json: { type: 'boolean' }, prompt: { type: 'boolean' },
       'model-command': { type: 'string' }, 'model-arg': { type: 'string', multiple: true },
     },
@@ -103,6 +117,12 @@ async function main(): Promise<void> {
     process.stdout.write(`Installed ${destination}\n`); return;
   }
   const config = await loadConfig(configPath);
+  const memoryPath = resolve(values.memory ?? resolve(dirname(configPath), 'memory.json'));
+  if (command === 'memory') {
+    print(await memoryCommand(memoryPath, config, action, name, {
+      voice: values.voice, text: values.text, kind: values.kind, all: values.all,
+    })); return;
+  }
   if (command === 'doctor') {
     print({ version: '0.1.0', node: process.versions.node, config: configPath,
       voices: Object.keys(config.voices).length, generation: 'Agent or explicit --model-command',
@@ -121,6 +141,23 @@ async function main(): Promise<void> {
     config.routing.fallback = name;
     await saveConfig(configPath, config);
     process.stdout.write(`Default voice: ${name}. Specific routing rules and --voice can override it.\n`); return;
+  }
+  const contextFlags = ['platform', 'task', 'audience', 'seriousness', 'energy', 'language', 'workspace', 'channel', 'recipient'] as const;
+  if (command === 'rules') { print(config.routing.rules); return; }
+  if (command === 'rule' && name) {
+    const index = config.routing.rules.findIndex(rule => rule.name === name);
+    if (action === 'remove') {
+      if (index < 0) throw new Error('Unknown rule. Run kevin rules to list assignments.');
+      config.routing.rules.splice(index, 1);
+    } else if (action === 'set') {
+      const when: Record<string, unknown> = {};
+      for (const key of contextFlags) if (values[key] !== undefined) when[key] = values[key];
+      if (!Object.keys(when).length) throw new Error('Supply at least one context condition, such as --task, --channel or --recipient.');
+      const rule = ruleSchema.parse({ name, voice: values.voice, priority: Number(values.priority ?? 80), when });
+      if (index < 0) config.routing.rules.push(rule); else config.routing.rules[index] = rule;
+    } else throw new Error('Use rule set <name> or rule remove <name>.');
+    await saveConfig(configPath, config);
+    process.stdout.write(`${action === 'remove' ? 'Removed' : 'Saved'} rule ${name}\n`); return;
   }
   if (command === 'identity') {
     if (action === 'export') { print(config.identity); return; }
@@ -164,7 +201,6 @@ async function main(): Promise<void> {
   const input = values.request ? requestSchema.parse(await readJson(resolve(values.request))) : undefined;
   const body = input ? '' : await stdin();
   const context: Record<string, unknown> = { ...input?.context };
-  const contextFlags = ['platform', 'task', 'audience', 'seriousness', 'energy', 'language'] as const;
   for (const key of contextFlags) if (values[key] !== undefined) context[key] = values[key];
   context.task = values.task ?? input?.context.task ?? command;
   const request = requestSchema.parse({
@@ -176,7 +212,7 @@ async function main(): Promise<void> {
     ...(values.blend ? { blend: values.blend } : {}),
     ...(values['no-humor'] ? { humor: 'off' } : {}),
   });
-  const envelope = compile(request, config);
+  const envelope = compile(request, config, await loadMemory(memoryPath));
   if (values.json) { print(envelope); return; }
   if (values.prompt || !values['model-command']) {
     if (!values.prompt) process.stderr.write('No model selected. Output is a prompt, not a generated reply.\n');
