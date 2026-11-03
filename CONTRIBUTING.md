@@ -11,3 +11,7 @@ Do not add private conversations, identity profiles, API keys or generated model
 Describe changes in observable terms: triggering context, previous behavior, resulting behavior and validation. A prose-style change does not need tests that match exact wording. A correctness constraint needs a meaningful test, not a screenshot or a claim that a model would probably obey.
 
 Original code and documentation use [MIT](LICENSE). Check file-specific upstream licenses before importing any code or prompt. The README banner is supplied media outside the software license; see the [media notice](docs/assets/README.md). Community voice packs should describe reusable traits rather than depend on copied dialogue.
+
+## Releases
+
+A pushed version tag does not create a GitHub Release. Match the tag to the workspace version and a commit with passing CI, then publish a GitHub Release for that existing tag with release notes, native binaries, the complete portable skill and `SHA256SUMS`. Use binaries from CI for that exact commit, retain the license in each archive, and verify the uploaded assets before publishing. Keep published tags immutable and update the README's download instructions when needed.
