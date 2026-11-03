@@ -6,6 +6,8 @@
 
 **One mind. Many voices. Always you.**
 
+Open source under the [MIT License](LICENSE). [Contributions are welcome](CONTRIBUTING.md).
+
 Kevin helps AI assistants communicate in your voice, adapted to the task, audience and stakes. It combines a portable agent skill with a native Rust CLI for voice selection, local memory and provider-independent composition.
 
 Eleven developer voices are included. **`tony-stark` is the starting default**: confident, concise and quick-witted, with optional dry humor. You can use it immediately, create your own personality, or assign different voices to reviews, Slack channels and specific people.
@@ -25,6 +27,8 @@ No mandatory cloud account, Node/npm runtime, telemetry, database or model vendo
 - [Use Kevin in a review project or CI](#use-kevin-in-a-review-project-or-ci)
 - [Configuration and architecture](#configuration-and-architecture)
 - [Verification and limits](#verification-and-limits)
+- [Contribute](#contribute)
+- [License](#license)
 
 ## Install
 
@@ -281,4 +285,14 @@ Tests establish deterministic program behavior, not model naturalness or semanti
 
 Identity sample analysis, automated calibration history/rollback and durable CI memory storage remain future work. Kevin does not send messages, approve reviews, merge code or train models. Quoted messages and memory text are untrusted data; prompt guidance is not an enforceable isolation boundary inside every LLM.
 
-The [reference study](docs/references.md) records the nine projects that informed the design. See [CONTRIBUTING.md](CONTRIBUTING.md). Original code and documentation use [MIT](LICENSE); the supplied README banner is separate media outside that software license.
+The [reference study](docs/references.md) records the nine projects that informed the design.
+
+## Contribute
+
+Report bugs or propose improvements through [GitHub issues](https://github.com/ruverd/kevin/issues). To contribute code, documentation or public synthetic examples, fork the repository and open a pull request against `main`. See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks and contribution guidelines.
+
+## License
+
+Kevin's original code, agent skill and documentation are open source under the [MIT License](LICENSE). Third-party material retains its own license and notices.
+
+The supplied README banner is excluded from the software license. See the [media notice](docs/assets/README.md).
