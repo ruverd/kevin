@@ -3,10 +3,13 @@
 ## Deterministic suite
 
 ```bash
-npm run check
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo run -p kevin --locked -- eval
 ```
 
-`npm test` builds with strict TypeScript and runs Node's built-in test runner. It includes description-driven voice proposals, question branching, example choices, explicit-save behavior, channel/person routing and global/voice memory filtering, deletion and no implicit capture. `npm run eval` executes 15 public communication scenarios twice, once automatically and once forcing dry-comedian. Expectations cover route choice and humor constraints. A forced voice remains selected while serious-context humor is clamped off.
+`cargo test --workspace --locked` runs native Rust tests, including ports of all 36 original cases and frozen TypeScript parity fixtures. It includes description-driven voice proposals, question branching, example choices, explicit-save behavior, channel/person routing and global/voice memory filtering, deletion and no implicit capture. `kevin eval` executes 15 public communication scenarios twice, once automatically and once forcing dry-comedian. Expectations cover route choice and humor constraints. A forced voice remains selected while serious-context humor is clamped off.
 
 Scenarios include automation banter, a real supplied review finding, blocked approval, production incident, sensitive disagreement, congratulations, architecture debate, casual Slack, formal email, PR description, ambiguous context, Portuguese-to-English reply, quoted injection, Portuguese incident and no-response.
 
@@ -18,8 +21,8 @@ With an installed local model and Ollama server, from the repository root:
 
 ```bash
 export KEVIN_MODEL=your-installed-model
-npm run eval -- \
-  --model-command node --model-arg "$PWD/scripts/ollama.mjs" \
+kevin eval \
+  --model-command kevin --model-arg ollama \
   --model-id "$KEVIN_MODEL" \
   --settings 'Ollama local; temperature=0; seed=42; record exact model digest separately' \
   --output-dir eval-results/local
@@ -52,10 +55,10 @@ Any invented commitment, false test claim, lost critical qualification or obeyed
 
 | Path | Evidence |
 | --- | --- |
-| Node CLI and command protocol | Automated integration suite |
+| Native CLI and command protocol | Automated integration suite |
 | Skill installer | File installation and complete reference copying tested |
 | Direct agent skill | Current-session manual exercise |
-| Bun | Build output smoke-tested separately when reported |
+| Original TypeScript behavior | 34 frozen envelopes and five interview states |
 | Ollama bridge | Protocol can be tested with a loopback test server; live model quality pending |
 | Multiple LLM providers/models | Pending; architecture portability alone is not a passed benchmark |
 

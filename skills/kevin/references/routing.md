@@ -18,7 +18,7 @@ Example rule:
 
 Another rule can target `task: "review"` or `recipient: "U_EXAMPLE"`. Higher integer priority wins; declaration order breaks ties. Only the first matching rule applies. If a recipient assignment should win over a channel assignment, give it a higher priority explicitly. There is no hidden specificity scoring. Starter serious-context rules have priority 100/90; CLI user rules default to 80. A higher-priority custom rule can keep its voice in serious contexts, but it cannot enable forbidden humor.
 
-Selection order: manual voice, matching configured rule, saved default. Missing unrelated fields do not cancel a match. Unknown seriousness still disables humor. Rules and voice choice cannot make private notes from another voice available.
+Selection order: manual voice, matching configured rule, saved default or bundled `tony-stark` starter. Missing unrelated fields do not cancel a match. Unknown seriousness still disables humor. Rules and voice choice cannot make private notes from another voice available.
 
 With CLI:
 

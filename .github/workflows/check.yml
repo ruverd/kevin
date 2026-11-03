@@ -4,12 +4,38 @@ permissions:
   contents: read
 jobs:
   test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary: kevin
+          - os: macos-latest
+            binary: kevin
+          - os: windows-latest
+            binary: kevin.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - run: cargo run -p kevin --locked -- eval
+      - run: cargo build -p kevin --release --locked
+      - run: ./target/release/${{ matrix.binary }} --help
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kevin-${{ runner.os }}-${{ runner.arch }}
+          path: target/release/${{ matrix.binary }}
+          if-no-files-found: error
+  msrv:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run check
+      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup toolchain install 1.89.0 --profile minimal
+      - run: cargo +1.89.0 check --workspace --all-targets --locked

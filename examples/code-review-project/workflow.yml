@@ -1,0 +1,38 @@
+name: Kevin review prompt example
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prepare-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ruverd/kevin
+          ref: main # Pin a reviewed commit for production use.
+          path: .tools/kevin
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build the native CLI
+        run: cargo build --manifest-path .tools/kevin/Cargo.toml -p kevin --release --locked
+      - name: Prepare the supported review
+        env:
+          KEVIN_MEMORY: ${{ runner.temp }}/kevin-memory.json
+        run: |
+          .tools/kevin/target/release/kevin review \
+            --config examples/code-review-project/kevin.json \
+            --memory "$KEVIN_MEMORY" \
+            --request examples/code-review-project/review-input.json \
+            --json > review-plan.json
+          .tools/kevin/target/release/kevin review \
+            --config examples/code-review-project/kevin.json \
+            --memory "$KEVIN_MEMORY" \
+            --request examples/code-review-project/review-input.json \
+            --prompt > review-prompt.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kevin-review-prompt
+          path: |
+            review-plan.json
+            review-prompt.txt

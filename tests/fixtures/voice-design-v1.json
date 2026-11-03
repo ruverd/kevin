@@ -1,0 +1,226 @@
+[
+  {
+    "description": "Confident, concise engineer.",
+    "answers": {},
+    "expected": {
+      "status": "question",
+      "description": "Confident, concise engineer.",
+      "answers": {
+        "avoid": []
+      },
+      "question": {
+        "id": "context",
+        "prompt": "Where should this voice be most useful?",
+        "why": "Audience and task shape the voice. This does not install automatic routing rules.",
+        "recommended": "mixed",
+        "options": [
+          {
+            "id": "slack",
+            "label": "Ordinary Slack conversations with teammates"
+          },
+          {
+            "id": "review",
+            "label": "Technical reviews with evidence and concrete next steps"
+          },
+          {
+            "id": "email",
+            "label": "External email with careful wording"
+          },
+          {
+            "id": "mixed",
+            "label": "Mixed contexts, with restrained defaults"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "description": "Confident, concise engineer.",
+    "answers": {
+      "context": "review"
+    },
+    "expected": {
+      "status": "question",
+      "description": "Confident, concise engineer.",
+      "answers": {
+        "context": "review",
+        "avoid": []
+      },
+      "question": {
+        "id": "stance",
+        "prompt": "When directness and warmth compete, what should lead?",
+        "why": "This selects a starting archetype without changing the base identity.",
+        "recommended": "direct",
+        "options": [
+          {
+            "id": "direct",
+            "label": "Lead with the useful point, retain necessary warmth"
+          },
+          {
+            "id": "warm",
+            "label": "Sound collaborative and approachable, without generic praise"
+          },
+          {
+            "id": "tactful",
+            "label": "Use careful attribution and tact, without hiding disagreement"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "description": "Confident, concise engineer.",
+    "answers": {
+      "context": "email",
+      "stance": "tactful",
+      "humor": "none",
+      "detail": "deep"
+    },
+    "expected": {
+      "status": "question",
+      "description": "Confident, concise engineer.",
+      "answers": {
+        "context": "email",
+        "stance": "tactful",
+        "humor": "none",
+        "detail": "deep",
+        "avoid": []
+      },
+      "question": {
+        "id": "example",
+        "prompt": "Which email wording sounds closest to this voice?",
+        "why": "All options keep the same request and add no deadline.",
+        "recommended": "c",
+        "evidence": "Synthetic intent: ask an external stakeholder to send the missing document. No deadline supplied.",
+        "options": [
+          {
+            "id": "a",
+            "label": "Please send the missing document."
+          },
+          {
+            "id": "b",
+            "label": "Could you send the missing document? Thanks."
+          },
+          {
+            "id": "c",
+            "label": "Could you please send the missing document?"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "description": "Confident, concise engineer.",
+    "answers": {
+      "context": "slack",
+      "stance": "direct",
+      "humor": "dry",
+      "detail": "short",
+      "example": "a"
+    },
+    "expected": {
+      "status": "proposal",
+      "description": "Confident, concise engineer.",
+      "answers": {
+        "context": "slack",
+        "stance": "direct",
+        "humor": "dry",
+        "detail": "short",
+        "example": "a",
+        "avoid": []
+      },
+      "voice": {
+        "description": "Confident, concise engineer.",
+        "extends": "minimalist",
+        "traits": {
+          "directness": 0.9,
+          "formality": 0.3,
+          "warmth": 0.5,
+          "humor": 0.35,
+          "sarcasm": 0,
+          "verbosity": 0.15
+        },
+        "behaviors": [
+          "Preferred starting context: slack. Adapt to the actual audience and task.",
+          "Lead with the useful point.",
+          "When invited, prefer understated situational observations."
+        ],
+        "avoid": [
+          "Invented facts or commitments",
+          "Forced humor"
+        ]
+      },
+      "previews": [
+        {
+          "kind": "illustrative-fixture",
+          "context": "slack example",
+          "evidence": "Synthetic intent: say you will look after lunch. Tests have not run. Do not promise a fix.",
+          "text": "I'll take a look after lunch. Tests haven't run yet."
+        },
+        {
+          "kind": "illustrative-fixture",
+          "context": "Critical incident; humor disabled regardless of voice",
+          "evidence": "Synthetic incident: requests are failing; cause is unknown; no ETA supplied.",
+          "text": "Requests are failing. The cause is still unknown."
+        }
+      ]
+    }
+  },
+  {
+    "description": "Confident, concise engineer.",
+    "answers": {
+      "context": "review",
+      "stance": "warm",
+      "humor": "playful",
+      "detail": "balanced",
+      "example": "b"
+    },
+    "expected": {
+      "status": "proposal",
+      "description": "Confident, concise engineer.",
+      "answers": {
+        "context": "review",
+        "stance": "warm",
+        "humor": "playful",
+        "detail": "balanced",
+        "example": "b",
+        "avoid": []
+      },
+      "voice": {
+        "description": "Confident, concise engineer.",
+        "extends": "friendly-teammate",
+        "traits": {
+          "directness": 0.75,
+          "formality": 0.3,
+          "warmth": 0.75,
+          "humor": 0.5,
+          "sarcasm": 0,
+          "verbosity": 0.4
+        },
+        "behaviors": [
+          "Preferred starting context: review. Adapt to the actual audience and task.",
+          "Use a brief collaborative acknowledgement when useful.",
+          "When invited, light situational exaggeration is acceptable."
+        ],
+        "avoid": [
+          "Invented facts or commitments",
+          "Forced humor"
+        ]
+      },
+      "previews": [
+        {
+          "kind": "illustrative-fixture",
+          "context": "review example",
+          "evidence": "Synthetic finding: items[0].id throws when items is empty. No test result is supplied.",
+          "text": "Can we guard the empty case here? items[0].id throws when items is empty."
+        },
+        {
+          "kind": "illustrative-fixture",
+          "context": "Critical incident; humor disabled regardless of voice",
+          "evidence": "Synthetic incident: requests are failing; cause is unknown; no ETA supplied.",
+          "text": "Requests are failing. The cause is still unknown."
+        }
+      ]
+    }
+  }
+]

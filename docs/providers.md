@@ -1,10 +1,10 @@
 # Generator protocol
 
-The TypeScript core exports:
+The Rust core exports:
 
-```ts
-interface Generator {
-  generate(envelope: Envelope): Promise<unknown>;
+```rust
+pub trait Generator {
+    fn generate(&self, envelope: &Envelope) -> kevin_core::Result<serde_json::Value>;
 }
 ```
 
@@ -42,6 +42,6 @@ Kevin handles explicit no-response without calling the generator. It rejects an 
 
 The command executable and repeatable `--model-arg` values are explicit user choices, passed as arguments without a shell. There is no built-in command string in a profile. Timeout is 30 seconds and stdout limit is 1 MB. CLI stdin also has a 1 MB limit; schema limits constrain individual fields and list sizes. Request files and profiles are intended as explicit local inputs, not an untrusted public API.
 
-Choosing a model command gives that program the supplied messages, preferences, facts and filtered global/selected-voice memory. Kevin does not inspect its network behavior. The bundled optional Ollama bridge calls only loopback and starts no service. It uses `KEVIN_MODEL`, no API key, `temperature: 0`, `seed: 42`, non-streaming `/api/chat` and the output schema. `KEVIN_OLLAMA_PORT` can select another loopback port; default `11434`. Its protocol is based on [Ollama chat documentation](https://docs.ollama.com/api/chat) and [structured outputs](https://docs.ollama.com/capabilities/structured-outputs). An installed cloud-backed model can still use a remote provider; choose an actual local model for offline use.
+Choosing a model command gives that program the supplied messages, preferences, facts and filtered global/selected-voice memory. Kevin does not inspect its network behavior. The built-in `kevin ollama` bridge calls only loopback and starts no service. It uses `KEVIN_MODEL`, no API key, `temperature: 0`, `seed: 42`, non-streaming `/api/chat` and the output schema. `KEVIN_OLLAMA_PORT` can select another loopback port; default `11434`. Its protocol is based on [Ollama chat documentation](https://docs.ollama.com/api/chat) and [structured outputs](https://docs.ollama.com/capabilities/structured-outputs). An installed cloud-backed model can still use a remote provider; choose an actual local model for offline use.
 
 JSON validation does not prove the response is faithful, free of injection, natural, or humorless. Protected strings can remain present in an otherwise wrong sentence. Meaning and tone need review. No semantic validator, LLM judge or detector score is presented as a guarantee.

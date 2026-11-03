@@ -6,99 +6,157 @@
 
 **One mind. Many voices. Always you.**
 
-Kevin helps an AI assistant write like you, adapted to the conversation. Your identity stays consistent; tone, detail and optional humor change with the audience, language and stakes.
+Kevin helps AI assistants communicate in your voice, adapted to the task, audience and stakes. It combines a portable agent skill with a native Rust CLI for voice selection, local memory and provider-independent composition.
 
-A coffee joke in Slack, a serious review finding and a production incident need different responses. Kevin separates those decisions from text generation. It ships as a portable agent skill and a small TypeScript engine with a CLI. No mandatory cloud account, telemetry, database or model vendor.
+Eleven developer voices are included. **`tony-stark` is the starting default**: confident, concise and quick-witted, with optional dry humor. You can use it immediately, create your own personality, or assign different voices to reviews, Slack channels and specific people.
 
-## Start with the skill
+No mandatory cloud account, Node/npm runtime, telemetry, database or model vendor. Generating new text still requires your host agent or an explicitly selected model adapter.
 
-Copy [skills/kevin](skills/kevin) with its `references` directory into your agent's skill location:
+## Contents
 
-| Host | Project-local destination | Invocation |
-| --- | --- | --- |
-| Codex | `.agents/skills/kevin/` | `$kevin` or automatic skill selection |
-| Claude Code | `.claude/skills/kevin/` | `/kevin` |
-| Cursor | `.cursor/skills/kevin/` | Select Kevin through the host's skill UI; syntax varies |
-| Generic agent | Load `SKILL.md` and referenced files | Ask it to use Kevin |
+- [Install](#install)
+- [Quick start](#quick-start)
+- [Included voices and defaults](#included-voices-and-defaults)
+- [Create a personality](#create-a-personality)
+- [Choose voices by context](#choose-voices-by-context)
+- [Global and per-voice memory](#global-and-per-voice-memory)
+- [Use the agent skill](#use-the-agent-skill)
+- [Generation and model adapters](#generation-and-model-adapters)
+- [Use Kevin in a review project or CI](#use-kevin-in-a-review-project-or-ci)
+- [Configuration and architecture](#configuration-and-architecture)
+- [Verification and limits](#verification-and-limits)
 
-No runtime is needed for direct skill use. Hosts must support loading instructions or let you paste them. There is no universal slash-command protocol. Older host versions may need different installation locations; see [adapters](docs/adapters.md).
+## Install
 
-Example requests:
-
-```text
-Use Kevin. Reply to this Slack message in English, in my voice.
-Context: teammate, ordinary conversation, already joking.
-Message: "Next you will automate my coffee too."
-Intent: acknowledge the joke without promising any work.
-```
-
-```text
-Use Kevin with the professional-reviewer voice.
-Finding: items[0].id throws when items is empty.
-Write one constructive GitHub comment. Do not invent a test result.
-```
-
-```text
-Use Kevin. Diz em inglês que vou olhar depois do almoço,
-sem prometer corrigir.
-```
-
-No profile yet? Kevin uses neutral defaults. It does not pretend those defaults are your learned personality.
-
-## CLI setup
-
-Node.js 22+ and npm:
+From source, with Rust 1.89 or newer:
 
 ```bash
 git clone https://github.com/ruverd/kevin.git
 cd kevin
-npm ci
-npm run build
-npm link
-kevin init --language pt-BR
-kevin doctor
+cargo install --path crates/kevin-cli --locked
+kevin --version
 ```
 
-`npm link` is optional. Use `npm run kevin -- <arguments>` from the checkout instead. This release is source-installable; it has not been published to npm. Bun can install dependencies and run the built CLI, but Node remains the supported baseline.
+If a newly installed Rust toolchain is not on your shell's PATH, load its environment with `source "$HOME/.cargo/env"` first. During development, use `cargo run -p kevin -- <arguments>` from the checkout.
 
-`init` creates a private project-local `.kevin/config.json`, refuses to overwrite an existing profile, and needs no interview. Choose an optional starting style with `--style minimalist`. Edit the generated JSON to set preferences or custom rules. Keep `.kevin/` ignored in consuming repositories too.
+The executable embeds the skill and all references. It runs without Node, npm or a source checkout. CI also builds native binaries as [workflow artifacts](https://github.com/ruverd/kevin/actions): choose your OS/architecture, extract the artifact, then run `chmod +x kevin` on Unix. Binary compatibility still depends on the target's system libraries. No crate or GitHub release has been published yet.
+
+## Quick start
+
+Voices work immediately; no onboarding or profile file is required:
 
 ```bash
 kevin voices
 kevin voice default
-kevin voice default minimalist
-kevin rules
-kevin reply --request examples/slack.json --json
-kevin reply --request examples/slack.json --prompt
-kevin review --request examples/review.json --prompt
-kevin draft --request examples/pr.json --prompt
-kevin reply --request examples/slack.json --voice minimalist --no-humor --prompt
-kevin voice create concise-colleague < examples/custom-voice.json
-kevin voice create field-engineer --description "Confident, concise, dry humor, no arrogance"
-kevin identity export > identity.json
-kevin identity import identity.json
-kevin skill install codex
+# tony-stark
+
+kevin reply --intent "Say I'll take a look after lunch, without promising a fix." \
+  --platform slack --audience teammate --seriousness ordinary --prompt
 ```
 
-The installer copies the complete skill into the current project and refuses existing files. It does not edit global agent settings. Run it in a consuming project using the linked CLI, or pass `--destination /path/to/project/.agents/skills`.
+`--prompt` exports instructions for a model. It is not a generated reply. Without `--model-command`, Kevin reports that distinction on stderr. To inspect deterministic selection, use `--json`:
 
-`kevin voices` lists all names and descriptions, marking the default. Use `kevin voices --json` for complete definitions. `kevin voice default <name>` persists the default in the selected profile; `kevin voice default` prints it. Specific routing rules take precedence over the default, and `--voice` overrides selection for one request. Context and humor constraints always apply.
+```bash
+kevin reply --request examples/slack.json --json
+kevin review --request examples/review.json --prompt
+kevin draft --request examples/pr.json --prompt
+```
 
-## Assign voices to channels, people and actions
+The example files are included in the checkout. Requests can describe a task, audience, language, conversation, supported facts and strings that must be preserved.
 
-Use rules to bind voices to supplied context, rather than changing the default for every conversation:
+To generate through an already running local Ollama server with an installed model:
+
+```bash
+export KEVIN_MODEL=your-installed-model
+kevin reply --request examples/slack.json \
+  --model-command kevin --model-arg ollama
+```
+
+This returns one draft. Kevin does not post it anywhere. For agent-native generation without a CLI model adapter, use the [skill](#use-the-agent-skill).
+
+## Included voices and defaults
+
+| Voice ID | Best fit | Expression |
+| --- | --- | --- |
+| **`tony-stark`** | Everyday developer communication; starter default | Confident technical delivery, concise phrasing, optional dry wit |
+| `professional-reviewer` | Code review and PR descriptions | Precise trigger, consequence and concrete next step |
+| `rubber-duck` | Debugging and explaining code | Patient questions, assumptions and small concrete examples |
+| `pragmatic-architect` | Design discussions | Constraints, meaningful tradeoffs and a concrete recommendation |
+| `incident-commander` | Operational updates | Confirmed impact, uncertainty and supported next steps; no humor |
+| `friendly-teammate` | Collaboration and ordinary Slack | Warm, helpful and conversational |
+| `diplomat` | Sensitive disagreement and external communication | Tactful, careful attribution and clear wording |
+| `minimalist` | Short status or direct answers | Essential facts and next action |
+| `witty-engineer` | Invited technical banter | Concise situational observations |
+| `dry-comedian` | Ordinary exchanges that already invite humor | Understatement and restrained irony |
+| `neutral` | An explicit base-identity voice | No added personality overlay |
+
+The Stark-inspired voice uses reusable traits, not copied dialogue, catchphrases or a claim to be the character. Humor is optional. Reviews, incidents, blocked work, tense exchanges and uncertain stakes keep humor off, even when a humorous voice is forced.
+
+```bash
+kevin voices                         # Names and descriptions; default is marked
+kevin voices --json                  # Complete configured definitions
+kevin voice default                  # Current default
+kevin voice default minimalist       # Persist a new default
+kevin voice default tony-stark        # Restore the Stark-inspired default
+kevin reply --voice rubber-duck --intent "Explain the supplied behavior." --prompt
+```
+
+An explicit default change persists a local profile. A one-request `--voice` does not. Specific context rules can select another voice, such as the reviewer for a code review. Existing saved profiles retain their own defaults and definitions; upgrades do not silently replace them.
+
+## Create a personality
+
+Describe the personality and let Kevin fill the gaps:
+
+```bash
+kevin voice create field-engineer \
+  --description "Direct, friendly, technically confident, dry humor without arrogance"
+```
+
+In a terminal, Kevin asks one question at a time, recommends an answer, offers example replies for comparison, and shows the proposed voice plus a serious-context preview. It saves only after confirmation. The local questionnaire is deterministic; its previews are labeled fictional fixtures.
+
+In an agent, use Kevin's [voice interview](skills/kevin/references/voice-interview.md) for deeper model-driven gap analysis:
+
+```text
+Use Kevin to create a personality: confident engineer, concise,
+with dry humor and no arrogance. Ask one question at a time,
+show example replies, and let me refine the voice before saving it.
+```
+
+For noninteractive use, complete [example answers](examples/voice-answers.json) and review the proposal:
+
+```bash
+kevin voice create field-engineer --description "Direct, friendly, dry humor" \
+  --answers examples/voice-answers.json
+
+# Persist only after reviewing the proposal:
+kevin voice create field-engineer --description "Direct, friendly, dry humor" \
+  --answers examples/voice-answers.json --save
+```
+
+Without complete answers, noninteractive mode returns the next question as JSON. You can also create or replace definitions directly:
+
+```bash
+kevin voice create concise-colleague < examples/custom-voice.json
+kevin voice edit concise-colleague < examples/custom-voice.json
+```
+
+Creating a voice does not change identity, routing or default. Select it with `--voice`, set it as default, or add a routing rule.
+
+## Choose voices by context
+
+Assign voices to an action, channel or recipient:
 
 ```bash
 kevin rule set review-comments --task review --voice professional-reviewer
 kevin rule set team-channel --platform slack --workspace T_EXAMPLE \
-  --channel C_EXAMPLE --voice witty-engineer --priority 80
+  --channel C_EXAMPLE --voice tony-stark --priority 80
 kevin rule set specific-person --platform slack --workspace T_EXAMPLE \
   --recipient U_EXAMPLE --voice minimalist --priority 85
 kevin rules
 kevin rule remove team-channel
 ```
 
-The same context fields can be supplied on requests:
+Supply the same metadata when composing:
 
 ```bash
 kevin reply --intent "Say I'll take a look after lunch." \
@@ -106,11 +164,13 @@ kevin reply --intent "Say I'll take a look after lunch." \
   --recipient U_EXAMPLE --audience teammate --seriousness ordinary --json
 ```
 
-Conditions match exactly and combine with AND. Higher priority wins; declaration order breaks ties. `rule set` creates or replaces a named rule, with default priority `80`. Starter critical/sensitive rules use `100`/`90`. A manual `--voice` overrides routing; humor limits still run last. Matching rules use supplied fields even when other metadata is missing, but unknown stakes keep humor off. No channel, person or relationship is inferred from quoted text. Prefer stable IDs and include workspace when necessary. See [routing](skills/kevin/references/routing.md).
+Selection order is **manual voice → highest-priority matching rule → default**. Conditions use exact equality and AND; declaration order breaks priority ties. There is no hidden specificity score. `rule set` creates or replaces a named rule, defaulting to priority 80. Starter critical/sensitive rules use 100/90. Humor constraints always run after selection.
+
+Metadata must come from the user or an authorized adapter. Kevin does not discover a Slack channel, infer a relationship or treat a quoted name as a verified recipient. Prefer stable IDs with workspace disambiguation. See [routing details](skills/kevin/references/routing.md).
 
 ## Global and per-voice memory
 
-Keep approved notes or preferences locally, separate from the base identity:
+Store approved preferences or notes locally:
 
 ```bash
 kevin memory add --kind preference --text "Avoid corporate filler."
@@ -122,105 +182,103 @@ kevin memory list --all
 kevin memory remove ENTRY_ID --voice professional-reviewer
 ```
 
-Without `--voice`, add/list/remove target global memory. Composition receives global entries plus only the selected voices' entries. A voice reused in several channels carries the same memory in each; this is not per-recipient storage. Inheritance does not inherit a parent voice's memory; explicit blends include their named scopes.
+Without `--voice`, commands target global memory. Composition receives global entries plus only the selected voices' entries. A voice reused across channels carries the same memory in each. Style inheritance does not inherit a parent's memory; explicit blends include their selected scopes.
 
-Memory lives in `memory.json` beside the selected config, normally `.kevin/memory.json`. Override with `--memory <file>`. Reads do not create or change it. Entries are saved only by an explicit command or an approved agent action, and removal deletes the active entry. No conversation harvesting or implicit learning. Notes are user-saved context, not proof of current test results, approvals or promises. See [memory contract](skills/kevin/references/memory.md).
+Default storage is `.kevin/memory.json`, or `memory.json` beside a selected config. `--memory <file>` overrides it. Reads do not create or update files. There is no automatic conversation harvesting or background learning. Memory is user-saved context, not proof of current tests, approvals or commitments. Deletion removes active storage, not past chats, exports or provider logs. See the [memory contract](skills/kevin/references/memory.md).
 
-## Create a personality by describing it
+## Use the agent skill
 
-In an agent, ask Kevin to create a voice from a description. It interviews you one question at a time, recommends an answer, resolves gaps and conflicting traits, then offers response examples for comparison. It presents the voice and previews before saving. The [interview guide](skills/kevin/references/voice-interview.md) keeps changes scoped to a new voice rather than replacing your identity.
-
-```text
-Use Kevin to create a personality: confident engineer, concise,
-dry humor, friendly without forced enthusiasm. Ask me about gaps,
-and let me choose between example replies before saving it.
-```
-
-The CLI also has a local guided questionnaire. In a terminal, `voice create --description` asks one question at a time, offers example replies, prints the proposed voice plus a serious-context preview, and asks whether to save. No model call is required. Its questions are deterministic; semantic analysis of a nuanced description comes from the agent workflow. Previews are labeled fictional fixtures, not claimed model generations.
-
-For scripts, use [example answers](examples/voice-answers.json):
+Install into a consuming project:
 
 ```bash
-# Return the next unanswered question; no profile changes.
-kevin voice create field-engineer --description "Confident, concise, dry humor"
-
-# Review a complete proposal. Add --save only when ready to persist it.
-kevin voice create field-engineer --description "Confident, concise, dry humor" \
-  --answers examples/voice-answers.json
-
-kevin voice create field-engineer --description "Confident, concise, dry humor" \
-  --answers examples/voice-answers.json --save
+kevin skill install codex
+# Or: claude, cursor, generic
 ```
 
-The first command returns JSON when stdin is not a terminal; in a terminal it starts the interview. Saving adds only the named voice. Identity and routing remain unchanged, so use `--voice field-engineer` or configure a routing rule separately. Serious-context humor limits apply to custom personalities too.
+The installer copies the complete embedded skill and refuses existing destinations. It does not edit global agent settings. You can also copy [skills/kevin](skills/kevin) manually, including its references.
 
-## Generation, with any provider
+| Host | Project-local location | Typical invocation |
+| --- | --- | --- |
+| Codex | `.agents/skills/kevin/` | `$kevin` or automatic skill selection |
+| Claude Code | `.claude/skills/kevin/` | `/kevin` |
+| Cursor | `.cursor/skills/kevin/` | Select Kevin through the host's supported skill UI |
+| Generic agent | Load `SKILL.md` and relevant references | Ask the agent to use Kevin |
 
-Without `--model-command`, Kevin exports a prompt and clearly reports that no reply was generated. `--json` emits the compiled envelope for inspection or another application. A model is still required to compose new text. Routing and profile validation run locally without one.
+No runtime is required for direct skill use. Hosts differ in history, tool access and command discovery; there is no universal slash-command protocol. See [adapter details](docs/adapters.md).
 
-For actual CLI generation, configure an executable that reads one envelope JSON from stdin and writes one output JSON to stdout. Kevin invokes it without a shell. Choose your own local model or provider adapter. The selected command receives the supplied profile and conversation; it controls whether those leave your device.
+## Generation and model adapters
 
-An optional [Ollama bridge](scripts/ollama.mjs) targets only `127.0.0.1:11434`, uses structured output, temperature `0` and seed `42`. With an already installed local model and running Ollama server:
+| Option | Result |
+| --- | --- |
+| `--json` | Validated context, selected voices, filtered memory and constraints |
+| `--prompt` | Portable composition instructions and input data |
+| `--model-command <executable>` | Actual generation through your chosen adapter |
+
+A model adapter reads one envelope JSON from stdin and writes one result JSON to stdout. Repeat `--model-arg` for arguments; Kevin invokes them without a shell. The native `kevin ollama` adapter uses loopback port 11434, temperature 0 and seed 42; `KEVIN_OLLAMA_PORT` can select another loopback port. It starts no server and downloads no models.
+
+The selected adapter receives the profile, supplied evidence and filtered memory. It controls whether data leaves the device. Choose an actual local model for offline inference; a local server can still delegate to a cloud model. See the [provider protocol](docs/providers.md).
+
+Model-agnostic means the skill and core do not require one provider. It does not promise identical quality or instruction compliance across models. Facts, uncertainty and commitments must survive generation; structural validation alone cannot prove that they did.
+
+## Use Kevin in a review project or CI
+
+A review project can version `ci/kevin.json` and make every final comment go through Kevin:
 
 ```bash
-export KEVIN_MODEL=your-installed-model
-kevin reply --request examples/slack.json \
-  --model-command node --model-arg "$PWD/scripts/ollama.mjs"
+kevin review --config ci/kevin.json --memory .kevin/memory.json \
+  --request review-input.json --model-command ./ci/model-adapter \
+  > review-comment.md
 ```
 
-The bridge downloads nothing and starts no services. Use a local model rather than an Ollama cloud model for offline operation. The bridge follows Ollama's [chat API](https://docs.ollama.com/api/chat) and [structured-output contract](https://docs.ollama.com/capabilities/structured-outputs). See [provider protocol](docs/providers.md) for custom adapters and validation limits.
+The flow is **analyzer findings → Kevin composition → existing publisher**. Installing a skill alone does not enforce that path. Require successful generation before publishing the resulting file.
 
-Model-agnostic means no provider dependency in the skill or core. It does **not** mean identical quality or guaranteed instruction compliance from every model. A small model, a tool-less host and a large coding agent have different capabilities. Cross-model quality measurements remain pending.
+Create the personality outside CI. The job consumes a complete configuration and explicit evidence without interviews or memory writes. Private memory can come from controlled storage; ephemeral runners do not make local files durable.
 
-## How adaptation works
+The [consumer project example](examples/code-review-project/README.md) includes a shared reviewer profile, synthetic request and [GitHub Actions template](examples/code-review-project/workflow.yml). Its priority-200 review rule keeps the project's reviewer voice even for security reviews, with humor still off. The workflow exports prompts without calling a model; the guide shows where a provisioned model adapter fits.
+
+## Configuration and architecture
+
+No profile is necessary for first use. To create an editable private profile before making changes:
+
+```bash
+kevin init --language pt-BR
+kevin doctor
+kevin identity export > identity.json
+kevin identity import identity.json
+```
+
+`init` refuses existing files. Explicit configuration edits also create a profile when none exists. The implicit location is `.kevin/config.json` in the current directory; Kevin does not scan parents. An explicitly selected missing `--config` is an error. Keep `.kevin/` ignored in consuming repositories, and keep exported identities private.
+
+Use `--config ci/kevin.json` for a deliberately shared configuration. Keep memory separate with `--memory .kevin/memory.json`. JSON v1 profiles and memory from the original implementation remain supported.
 
 ```mermaid
 flowchart LR
     A[Intent and supplied evidence] --> C[Validated context]
-    B[Approved identity and language] --> R[Deterministic voice routing]
+    B[Identity and language] --> R[Voice routing]
     C --> R
-    V[Custom voices and priority rules] --> R
-    R --> H[Context and humor constraints]
-    H --> P[Provider-neutral composition envelope]
-    P --> M[Host agent or model command]
-    M --> D[Validated draft for review]
+    V[Defaults and scoped rules] --> R
+    R --> H[Context and humor limits]
+    H --> M[Global and selected voice memory]
+    M --> P[Provider-neutral envelope]
+    P --> G[Host agent or model adapter]
+    G --> D[Validated draft]
 ```
 
-The core exposes `compile`, `compose`, schemas, built-in voices and routing functions. CLI storage and subprocess handling live outside the core. Read [architecture and schemas](docs/architecture.md) for interfaces and defaults.
+`kevin-core` owns schemas, context, routing, constraints, memory filtering and composition. The `kevin` CLI owns files, subprocesses and the optional loopback HTTP adapter. The skill stays Markdown. See [architecture and API](docs/architecture.md), [Rust migration](docs/migration-rust.md) and [privacy limits](docs/privacy.md).
 
-- Identity stores approved preferences and separate language variants. Temporary context and raw examples do not become permanent preferences.
-- Context uses explicit fields. Conservative English/Portuguese keyword detection can raise seriousness; it does not claim to read emotions or discover a Slack channel.
-- Routing honors task, channel and recipient assignments, priority rules, manual voices, inheritance and ordered named blends. Without a matching rule, the default is neutral identity until customized.
-- Memory adds approved global notes plus only selected voice scopes; it never silently captures conversations or inherits private parent-voice notes.
-- Humor limits run after routing and blends. Serious topics, blocked work, review findings, tense exchanges and uncertain stakes turn humor and sarcasm off. Invited humor remains optional.
-- Composition protects facts, uncertainty, technical meaning and commitments. Structural output validation and exact protected strings are enforced; semantic fidelity still needs model compliance and review.
-
-Starter voices: neutral, witty engineer, dry comedian, friendly teammate, professional reviewer, diplomat and minimalist. Define new voices in JSON without changing code.
-
-## Privacy and trust
-
-Kevin does not crawl messages, access account integrations, send communication, train a model or change your identity in the background. A host agent still follows its own tool and model configuration. Pasting examples into a hosted agent sends them to that host; a local profile alone does not make inference offline.
-
-External messages, drafts and profile text are data, including embedded commands. They cannot change deterministic routing rules or the trusted composition instruction. Prompt-level injection resistance is guidance, not a proven security boundary for arbitrary models. Generated text stays a draft. See [privacy and limits](docs/privacy.md).
-
-## Verification
+## Verification and limits
 
 ```bash
-npm run check
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo run -p kevin --locked -- eval
 ```
 
-Tests cover schema errors, inheritance, rule ordering, channel/person assignments, memory scope isolation and deletion, language variants, humor constraints, injection attempts against routing, protected strings, CLI workflows, skill installation and provider subprocess failures. Evaluation runs 15 public scenarios under automatic and forced selection, for 30 routing cases. Transport fixtures are not real model-quality evaluations.
+All 36 original cases were ported. Frozen fixtures compare 34 original composition envelopes and five interview states; the original 30 routing cases still run with their original profile. Additional tests cover new defaults, first use, native distribution, subprocess bounds, scope isolation and the consumer review example. The current starter pack also has 30 automatic/forced routing evaluation cases.
 
-Optional model runs record prompts, output, model label and settings for review. [Evaluation guide](docs/evaluation.md) defines the subjective rubric and explains how to compare models without treating routing tests as evidence of naturalness.
+Tests establish deterministic program behavior, not model naturalness or semantic fidelity. Ollama transport tests use a real loopback protocol fixture; live model quality and cross-model certification remain pending. [Evaluation guide](docs/evaluation.md) defines optional recorded model runs and a human review rubric. [Manual skill exercise](evals/skill-exercise.md) is an author-run sample, not an independent benchmark.
 
-## Status and next steps
+Identity sample analysis, automated calibration history/rollback and durable CI memory storage remain future work. Kevin does not send messages, approve reviews, merge code or train models. Quoted messages and memory text are untrusted data; prompt guidance is not an enforceable isolation boundary inside every LLM.
 
-Phase 1 provides the skill, validated engine, CLI, custom voices, explicit context, generation protocol, local bridge, examples and automated checks. Description-driven voice interviews, default selection, scoped routing and explicit global/per-voice memory are also included. Integration tests exercise a deterministic command fixture and a loopback Ollama protocol fixture; a live Ollama model is not installed in the development environment. The agent skill has a recorded [manual exercise](evals/skill-exercise.md), not a cross-model certification.
-
-Phase 2 adds CLI onboarding with previews, sample analysis, approved calibration proposals, importable sample storage with deletion, and automated preference history/rollback. Direct skill calibration can propose a profile now; persistent learning is never automatic. Advanced context inference, richer blending, community voice packs and native platform integrations remain later work.
-
-## References and contributing
-
-The [reference study](docs/references.md) compares HumanInk, Humanizer, Talk Skill, Work Humanizer, Unslop, MYNAH, Respond to Message, n8n's human-like review and Comment Writer. Kevin combines selected design ideas with an original implementation; it does not vendor their prompts or claim their behavior as verified across all models.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). Original code and documentation use the [MIT license](LICENSE). The user-supplied README banner is separate media and is not covered by that software license.
+The [reference study](docs/references.md) records the nine projects that informed the design. See [CONTRIBUTING.md](CONTRIBUTING.md). Original code and documentation use [MIT](LICENSE); the supplied README banner is separate media outside that software license.

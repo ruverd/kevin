@@ -1,0 +1,20 @@
+[package]
+name = "kevin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Local-first adaptive communication skill and native CLI"
+
+[dependencies]
+kevin-core = { path = "../kevin-core" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+clap = { version = "4.5", features = ["derive"] }
+tempfile = "3"
+uuid = { version = "1", features = ["v4"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json"] }
+
+[dev-dependencies]

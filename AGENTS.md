@@ -1,8 +1,8 @@
 # Repository guidance
 
-Kevin is a portable communication skill with an optional TypeScript runtime. Keep model-specific clients, filesystem access and subprocess execution outside `packages/core`.
+Kevin is a portable communication skill with an optional native Rust runtime. Keep model-specific clients, filesystem access and subprocess execution outside `crates/kevin-core`.
 
-Run `npm run check` after runtime changes. Keep model evaluations optional and explicit. Do not describe deterministic fixtures as model-quality measurements. Public synthetic inputs are in `evals/scenarios.ts`; keep private profiles and samples out of version control.
+Run `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets --locked -- -D warnings`, `cargo test --workspace --locked`, and `cargo run -p kevin --locked -- eval` after runtime changes. Keep model evaluations optional and explicit. Do not describe deterministic fixtures as model-quality measurements. Public synthetic inputs are in `evals/scenarios.json`; keep private profiles and samples out of version control.
 
 <!-- JULIUS_START -->
 ## Julius
