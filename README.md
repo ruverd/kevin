@@ -99,7 +99,7 @@ This returns one draft. Kevin does not post it anywhere. For agent-native genera
 | `dry-comedian` | Ordinary exchanges that already invite humor | Understatement and restrained irony |
 | `neutral` | An explicit base-identity voice | No added personality overlay |
 
-The Stark-inspired and Chandler-inspired voices use reusable traits, not copied dialogue, catchphrases or claims to be the characters. Chandler follows an existing joke without escalating it, keeps self-deprecation light and occasional, and avoids implying incompetence or inventing personal mishaps. Humor is optional. Reviews, incidents, blocked work, tense exchanges and uncertain stakes keep humor off, even when a humorous voice is forced.
+The Stark-inspired and Chandler-inspired voices use reusable traits, not copied dialogue, catchphrases or claims to be the characters. Chandler follows an existing joke without escalating it, keeps self-deprecation light and occasional, and avoids implying incompetence or inventing personal mishaps. Humor is optional. Reviews, incidents, blocked work and tense exchanges keep humor off. When a matching Slack rule assigns the explicitly requested voice, replies can use light, optional humor even if the stakes or audience are unknown.
 
 ```bash
 kevin voices                         # Names and descriptions; default is marked

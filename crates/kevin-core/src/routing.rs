@@ -65,7 +65,7 @@ pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
     }
     let low = context.seriousness == Seriousness::Unknown || context.platform == Platform::Unknown;
     if low {
-        reasons.push("Incomplete context: use matching configured rules or the default; unknown stakes disable humor.".into());
+        reasons.push("Incomplete context: use matching configured rules or the default.".into());
     }
     Analysis {
         context,
@@ -98,6 +98,14 @@ pub fn resolve_voice(config: &Config, name: &str) -> Result<ResolvedVoice> {
     Ok(resolved)
 }
 pub fn route_voice(request: &Request, config: &Config, analysis: &Analysis) -> Result<Route> {
+    route_with_rule(request, config, analysis).map(|(route, _)| route)
+}
+
+fn route_with_rule<'a>(
+    request: &Request,
+    config: &'a Config,
+    analysis: &Analysis,
+) -> Result<(Route, Option<&'a Rule>)> {
     let context = serde_json::to_value(&analysis.context).map_err(|e| e.to_string())?;
     let mut matches = vec![];
     for (index, rule) in config.routing.rules.iter().enumerate() {
@@ -169,23 +177,54 @@ pub fn route_voice(request: &Request, config: &Config, analysis: &Analysis) -> R
             .reasons
             .push("Blending applies named traits in order; last explicit trait wins.".into());
     }
-    Ok(route)
+    Ok((route, rule))
+}
+
+pub(crate) fn plan_route(
+    request: &Request,
+    config: &Config,
+    analysis: &Analysis,
+) -> Result<(Route, HumorDecision)> {
+    let (mut route, rule) = route_with_rule(request, config, analysis)?;
+    let context = &analysis.context;
+    let slack_voice_assignment = context.task == Task::Reply
+        && rule.is_some_and(|rule| {
+            rule.when.platform == Some(Platform::Slack)
+                && request.voice.as_deref() == Some(rule.voice.as_str())
+        });
+    let humor = constrain_humor_for_route(request, context, &mut route, slack_voice_assignment);
+    Ok((route, humor))
 }
 pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) -> HumorDecision {
+    constrain_humor_for_route(request, context, route, false)
+}
+
+fn constrain_humor_for_route(
+    request: &Request,
+    context: &Context,
+    route: &mut Route,
+    slack_voice_assignment: bool,
+) -> HumorDecision {
     let reason = if request.humor == HumorSetting::Off {
         Some("User disabled humor.")
-    } else if context.seriousness != Seriousness::Ordinary {
+    } else if matches!(
+        context.seriousness,
+        Seriousness::Sensitive | Seriousness::Critical
+    ) || (context.seriousness == Seriousness::Unknown && !slack_voice_assignment)
+    {
         Some("Seriousness is sensitive, critical, or unknown.")
     } else if context.energy == Energy::Tense {
         Some("Tense context.")
     } else if matches!(context.task, Task::Review | Task::PrDescription) {
         Some("Technical findings and evidence take priority.")
-    } else if matches!(
-        context.audience,
-        Audience::External | Audience::Public | Audience::Unknown
-    ) {
+    } else if matches!(context.audience, Audience::External | Audience::Public)
+        || (context.audience == Audience::Unknown && !slack_voice_assignment)
+    {
         Some("No established audience permission for humor.")
-    } else if !context.existing_humor && context.energy != Energy::Playful {
+    } else if !context.existing_humor
+        && context.energy != Energy::Playful
+        && !slack_voice_assignment
+    {
         Some("No conversational invitation for humor.")
     } else if route.traits.humor == 0.0 {
         Some("Selected identity or voice disables humor.")
@@ -201,11 +240,14 @@ pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) 
             reason: reason.into(),
         };
     }
-    if !context.existing_humor {
+    let invited = context.existing_humor
+        && context.seriousness == Seriousness::Ordinary
+        && context.audience != Audience::Unknown;
+    if !invited {
         route.traits.sarcasm = 0.0;
     }
     HumorDecision {
-        mode: if context.existing_humor {
+        mode: if invited {
             HumorMode::Invited
         } else {
             HumorMode::Optional
