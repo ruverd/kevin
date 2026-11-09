@@ -2581,7 +2581,7 @@
               "avoid": [],
               "preferences": [],
               "reasons": [
-                "Incomplete context: use matching configured rules or the default; unknown stakes disable humor.",
+                "Incomplete context: use matching configured rules or the default.",
                 "Auto voice: neutral"
               ]
             },
@@ -2700,7 +2700,7 @@
               ],
               "preferences": [],
               "reasons": [
-                "Incomplete context: use matching configured rules or the default; unknown stakes disable humor.",
+                "Incomplete context: use matching configured rules or the default.",
                 "Manual voice: dry-comedian"
               ]
             },
@@ -4082,7 +4082,7 @@
               ],
               "preferences": [],
               "reasons": [
-                "Incomplete context: use matching configured rules or the default; unknown stakes disable humor.",
+                "Incomplete context: use matching configured rules or the default.",
                 "Manual voice: custom",
                 "Blending applies named traits in order; last explicit trait wins."
               ]
@@ -4453,7 +4453,7 @@
                 "Use você"
               ],
               "reasons": [
-                "Incomplete context: use matching configured rules or the default; unknown stakes disable humor.",
+                "Incomplete context: use matching configured rules or the default.",
                 "Auto voice: neutral"
               ]
             },
@@ -4848,7 +4848,7 @@
               ],
               "preferences": [],
               "reasons": [
-                "Incomplete context: use matching configured rules or the default; unknown stakes disable humor.",
+                "Incomplete context: use matching configured rules or the default.",
                 "Auto voice: custom",
                 "Rule: channel (80)"
               ]
@@ -5233,7 +5233,7 @@
               ],
               "preferences": [],
               "reasons": [
-                "Incomplete context: use matching configured rules or the default; unknown stakes disable humor.",
+                "Incomplete context: use matching configured rules or the default.",
                 "Manual voice: custom"
               ]
             },

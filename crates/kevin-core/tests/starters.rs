@@ -91,3 +91,76 @@ fn original_thirty_routing_scenarios_remain_valid_with_original_v1_profile() {
         }
     }
 }
+
+#[test]
+fn configured_slack_voice_can_use_optional_humor_with_incomplete_context() {
+    let mut config = default_config();
+    config.routing.rules.push(
+        parse(json!({
+            "name": "slack-voice", "priority": 80,
+            "when": {"platform": "slack"}, "voice": "chandler"
+        }))
+        .unwrap(),
+    );
+
+    let request = json!({
+        "intent": "Explain the verified reason briefly.",
+        "facts": ["Outcome: Changes requested", "The retry still drops the request."],
+        "voice": "chandler",
+        "context": {"platform": "slack", "task": "reply", "channel": "pr-queue"}
+    });
+    let parsed: Request = parse(request.clone()).unwrap();
+    let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
+    assert_eq!(envelope.data.request, parsed);
+    let plan = envelope.data.plan;
+    assert_eq!(plan.context.seriousness, Seriousness::Unknown);
+    assert_eq!(plan.context.audience, Audience::Unknown);
+    assert_eq!(plan.context.energy, Energy::Unknown);
+    assert_eq!(plan.route.voices, ["chandler"]);
+    assert_eq!(plan.humor.mode, HumorMode::Optional);
+    assert_eq!(plan.route.traits.humor, 0.5);
+    assert_eq!(plan.route.traits.sarcasm, 0.0);
+    assert!(
+        plan.route
+            .behaviors
+            .iter()
+            .any(|b| b.contains("self-deprecation"))
+    );
+
+    for (field, value) in [
+        ("seriousness", "sensitive"),
+        ("seriousness", "critical"),
+        ("energy", "tense"),
+        ("audience", "external"),
+        ("audience", "public"),
+        ("task", "review"),
+        ("platform", "github"),
+    ] {
+        let mut input = request.clone();
+        input["context"][field] = json!(value);
+        let plan = compile(input, serde_json::to_value(&config).unwrap(), None)
+            .unwrap()
+            .data
+            .plan;
+        assert_eq!(plan.humor.mode, HumorMode::Off, "{field}={value}");
+    }
+
+    let mut off = request.clone();
+    off["humor"] = json!("off");
+    let mut security = request.clone();
+    security["facts"] = json!(["Security vulnerability confirmed."]);
+    let mut other_voice = request.clone();
+    other_voice["voice"] = json!("tony-stark");
+    let mut automatic = request.clone();
+    automatic.as_object_mut().unwrap().remove("voice");
+    for input in [off, security, other_voice, automatic] {
+        let parsed = parse(input).unwrap();
+        let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
+        assert_eq!(envelope.data.plan.humor.mode, HumorMode::Off);
+    }
+
+    config.voices.get_mut("chandler").unwrap().traits.humor = Some(0.0);
+    let parsed = parse(request).unwrap();
+    let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
+    assert_eq!(envelope.data.plan.humor.mode, HumorMode::Off);
+}

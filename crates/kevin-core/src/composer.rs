@@ -48,8 +48,7 @@ pub fn compile_typed(request: &Request, config: &Config, memory: &Memory) -> Res
     memory.normalize();
     memory.validate()?;
     let analysis = analyze_context(request, config);
-    let mut route = route_voice(request, config, &analysis)?;
-    let humor = constrain_humor(request, &analysis.context, &mut route);
+    let (route, humor) = plan_route(request, config, &analysis)?;
     let memory = select_memory(&memory, &route.voices);
     Ok(Envelope {
         version: Version1,
