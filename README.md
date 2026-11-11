@@ -32,7 +32,7 @@ No mandatory cloud account, Node/npm runtime, telemetry, database or model vendo
 
 ## Install
 
-Prebuilt binaries and a portable skill ZIP are available from [GitHub Releases](https://github.com/ruverd/kevin/releases/latest). Choose macOS ARM64 (Apple Silicon), Linux x86-64 or Windows x86-64, extract the archive, and put the executable on your PATH. Check the archive against the release's `SHA256SUMS`. Prebuilt binaries require no Rust, Node or npm installation.
+Prebuilt binaries and a portable skill ZIP are available from [GitHub Releases](https://github.com/ruverd/kevin/releases/latest). Choose macOS ARM64 (Apple Silicon), Linux x86-64 or Windows x86-64, extract the archive, and put the executable on your PATH. Check the archive against the release's `SHA256SUMS`. Prebuilt binaries require no Rust, Node or npm installation. The v0.2.1 Linux download requires glibc 2.34 or newer.
 
 For direct agent use, extract the skill ZIP and copy the complete `kevin` folder, including `references`, into your [host's skill home](#use-the-agent-skill). No CLI is required.
 
@@ -47,11 +47,26 @@ kevin --version
 
 If a newly installed Rust toolchain is not on your shell's PATH, load its environment with `source "$HOME/.cargo/env"` first. During development, use `cargo run -p kevin -- <arguments>` from the checkout.
 
-The executable embeds the skill and all references. It runs without Node, npm or a source checkout. CI also builds development binaries as [workflow artifacts](https://github.com/ruverd/kevin/actions): choose your OS/architecture, extract the artifact, then run `chmod +x kevin` on Unix. Binary compatibility still depends on the target's system libraries.
+The executable embeds the skill and all references. It runs without Node, npm or a source checkout. For a development build, download the [workflow artifact](https://github.com/ruverd/kevin/actions) for your OS and architecture, extract it and run `chmod +x kevin` on Unix. The Linux x86-64 CI artifact uses statically linked musl and runs `kevin eval` in Ubuntu 20.04 before upload.
 
 ## Quick start
 
-Voices work immediately; no onboarding or profile file is required:
+### Draft a reply with the skill
+
+After [installing the skill](#use-the-agent-skill), try this in Codex:
+
+```text
+$kevin Draft a Slack reply to “Can you check the flaky test today?”
+Say I'll take a look after lunch. Keep it to one sentence and avoid promising a fix.
+```
+
+Example draft:
+
+> I'll take a look after lunch.
+
+### Inspect a plan with the CLI
+
+Voices work immediately with the built-in profile:
 
 ```bash
 kevin voices
@@ -71,6 +86,8 @@ kevin draft --request examples/pr.json --prompt
 ```
 
 The example files are included in the checkout. Requests can describe a task, audience, language, conversation, supported facts and strings that must be preserved.
+
+Without `--request`, you can pipe text to the CLI. With `--intent`, the piped text becomes a source message. `kevin rewrite` uses it as the draft instead.
 
 To generate through an already running local Ollama server with an installed model:
 
