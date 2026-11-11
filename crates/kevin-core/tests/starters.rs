@@ -127,6 +127,21 @@ fn configured_slack_voice_can_use_optional_humor_with_incomplete_context() {
             .any(|b| b.contains("self-deprecation"))
     );
 
+    for message in [
+        "CI blocked approval until the build finished.",
+        "O CI está bloqueado e a aprovação está pendente.",
+    ] {
+        let mut input = request.clone();
+        input["messages"] = json!([message]);
+        let parsed = parse(input).unwrap();
+        let plan = compile_typed(&parsed, &config, &Memory::default())
+            .unwrap()
+            .data
+            .plan;
+        assert_eq!(plan.context.seriousness, Seriousness::Unknown);
+        assert_eq!(plan.humor.mode, HumorMode::Optional);
+    }
+
     for (field, value) in [
         ("seriousness", "sensitive"),
         ("seriousness", "critical"),
@@ -149,11 +164,13 @@ fn configured_slack_voice_can_use_optional_humor_with_incomplete_context() {
     off["humor"] = json!("off");
     let mut security = request.clone();
     security["facts"] = json!(["Security vulnerability confirmed."]);
+    let mut harassment = request.clone();
+    harassment["messages"] = json!(["Our manager is handling a harassment report."]);
     let mut other_voice = request.clone();
     other_voice["voice"] = json!("tony-stark");
     let mut automatic = request.clone();
     automatic.as_object_mut().unwrap().remove("voice");
-    for input in [off, security, other_voice, automatic] {
+    for input in [off, security, harassment, other_voice, automatic] {
         let parsed = parse(input).unwrap();
         let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
         assert_eq!(envelope.data.plan.humor.mode, HumorMode::Off);

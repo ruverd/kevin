@@ -7,7 +7,11 @@ static CRITICAL: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?-u:\b)(incident|outage|sev[ -]?[01]|data loss|security|vulnerability|credential leak|breach|incidente|indisponibilidade|perda de dados|vulnerabilidade|seguran[çc]a)(?-u:\b)").expect("constant regex")
 });
 static SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)(?-u:\b)(blocked|approval|disagreement|harassment|layoff|fired|stressed|bloquead[oa]|aprova[çc][aã]o|desentendimento|ass[eé]dio|demiss[aã]o|estressad[oa])(?-u:\b)").expect("constant regex")
+    Regex::new(r"(?i)(?-u:\b)(harassment|layoff|fired|ass[eé]dio|demiss[aã]o)(?-u:\b)")
+        .expect("constant regex")
+});
+static CONTEXTUAL_SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?-u:\b)(blocked|approval|disagreement|stressed|bloquead[oa]|aprova[çc][aã]o|desentendimento|estressad[oa])(?-u:\b)").expect("constant regex")
 });
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -59,7 +63,15 @@ pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
     if CRITICAL.is_match(&content) {
         context.seriousness = Seriousness::Critical;
         reasons.push("Conservative critical-topic detection.".into());
-    } else if SENSITIVE.is_match(&content) && context.seriousness != Seriousness::Critical {
+    } else if context.seriousness != Seriousness::Critical
+        && (SENSITIVE.is_match(&content)
+            || (CONTEXTUAL_SENSITIVE.is_match(&content)
+                && !has_assigned_slack_voice(
+                    request,
+                    &context,
+                    matching_rule(config, &context).ok().flatten(),
+                )))
+    {
         context.seriousness = Seriousness::Sensitive;
         reasons.push("Conservative sensitive-topic detection.".into());
     }
@@ -101,12 +113,8 @@ pub fn route_voice(request: &Request, config: &Config, analysis: &Analysis) -> R
     route_with_rule(request, config, analysis).map(|(route, _)| route)
 }
 
-fn route_with_rule<'a>(
-    request: &Request,
-    config: &'a Config,
-    analysis: &Analysis,
-) -> Result<(Route, Option<&'a Rule>)> {
-    let context = serde_json::to_value(&analysis.context).map_err(|e| e.to_string())?;
+fn matching_rule<'a>(config: &'a Config, context: &Context) -> Result<Option<&'a Rule>> {
+    let context = serde_json::to_value(context).map_err(|e| e.to_string())?;
     let mut matches = vec![];
     for (index, rule) in config.routing.rules.iter().enumerate() {
         let conditions = serde_json::to_value(&rule.when).map_err(|e| e.to_string())?;
@@ -118,10 +126,26 @@ fn route_with_rule<'a>(
             matches.push((index, rule));
         }
     }
-    let rule = matches
+    Ok(matches
         .into_iter()
         .max_by_key(|(index, rule)| (rule.priority, Reverse(*index)))
-        .map(|(_, rule)| rule);
+        .map(|(_, rule)| rule))
+}
+
+fn has_assigned_slack_voice(request: &Request, context: &Context, rule: Option<&Rule>) -> bool {
+    context.task == Task::Reply
+        && rule.is_some_and(|rule| {
+            rule.when.platform == Some(Platform::Slack)
+                && request.voice.as_deref() == Some(rule.voice.as_str())
+        })
+}
+
+fn route_with_rule<'a>(
+    request: &Request,
+    config: &'a Config,
+    analysis: &Analysis,
+) -> Result<(Route, Option<&'a Rule>)> {
+    let rule = matching_rule(config, &analysis.context)?;
     let name = request
         .voice
         .as_deref()
@@ -187,11 +211,7 @@ pub(crate) fn plan_route(
 ) -> Result<(Route, HumorDecision)> {
     let (mut route, rule) = route_with_rule(request, config, analysis)?;
     let context = &analysis.context;
-    let slack_voice_assignment = context.task == Task::Reply
-        && rule.is_some_and(|rule| {
-            rule.when.platform == Some(Platform::Slack)
-                && request.voice.as_deref() == Some(rule.voice.as_str())
-        });
+    let slack_voice_assignment = has_assigned_slack_voice(request, context, rule);
     let humor = constrain_humor_for_route(request, context, &mut route, slack_voice_assignment);
     Ok((route, humor))
 }
