@@ -9,11 +9,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            binary: kevin
+            executable: target/x86_64-unknown-linux-musl/release/kevin
           - os: macos-latest
-            binary: kevin
+            executable: target/release/kevin
           - os: windows-latest
-            binary: kevin.exe
+            executable: target/release/kevin.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -25,12 +25,21 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - run: cargo run -p kevin --locked -- eval
-      - run: cargo build -p kevin --release --locked
-      - run: ./target/release/${{ matrix.binary }} --help
+      - name: Build and verify the static Linux executable
+        if: runner.os == 'Linux'
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          cargo build -p kevin --release --locked --target x86_64-unknown-linux-musl
+          docker run --rm --network none \
+            --mount "type=bind,source=$PWD/${{ matrix.executable }},target=/kevin,readonly" \
+            ubuntu:20.04 /kevin eval
+      - if: runner.os != 'Linux'
+        run: cargo build -p kevin --release --locked
+      - run: ./${{ matrix.executable }} --help
       - uses: actions/upload-artifact@v4
         with:
           name: kevin-${{ runner.os }}-${{ runner.arch }}
-          path: target/release/${{ matrix.binary }}
+          path: ${{ matrix.executable }}
           if-no-files-found: error
   msrv:
     runs-on: ubuntu-latest

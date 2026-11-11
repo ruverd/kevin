@@ -26,11 +26,11 @@ fn stdin_text() -> Result<String> {
     if std::io::stdin().is_terminal() {
         Ok(String::new())
     } else {
-        Ok(storage::read_stdin()?.trim().into())
+        storage::read_stdin()
     }
 }
 fn read_stdin_value() -> Result<Value> {
-    serde_json::from_str(&stdin_text()?).map_err(|e| format!("Invalid JSON input: {e}"))
+    serde_json::from_str(stdin_text()?.trim()).map_err(|e| format!("Invalid JSON input: {e}"))
 }
 
 pub fn run(args: Args) -> Result<()> {
@@ -253,24 +253,21 @@ fn create_voice(
     Ok(())
 }
 fn composition(mode: &str, options: &Options, config: &Config, memory_path: &Path) -> Result<()> {
-    let input = match &options.request {
-        Some(file) => Some(storage::read_json::<Request>(file)?),
-        None => None,
-    };
-    let body = if input.is_none() {
-        stdin_text()?
+    let mut request = if let Some(file) = &options.request {
+        let request: Request = storage::read_json(file)?;
+        serde_json::to_value(request).map_err(|e| e.to_string())?
     } else {
-        String::new()
-    };
-    let mut request = match &input {
-        Some(request) => serde_json::to_value(request).map_err(|e| e.to_string())?,
-        None => json!({"intent":body}),
+        let body = stdin_text()?;
+        let mut request = json!({"intent": body.trim()});
+        if mode == "rewrite" {
+            request["draft"] = json!(body.trim());
+        } else if options.intent.is_some() && !body.trim().is_empty() {
+            request["messages"] = json!([body]);
+        }
+        request
     };
     if let Some(intent) = &options.intent {
         request["intent"] = json!(intent);
-    }
-    if input.is_none() && mode == "rewrite" {
-        request["draft"] = json!(body);
     }
     if request.get("context").is_none() {
         request["context"] = json!({});

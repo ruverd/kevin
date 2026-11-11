@@ -30,6 +30,7 @@ fn ollama_bridge_sends_separate_roles_and_schema_to_real_loopback_protocol_fixtu
                 Err(e) => panic!("{e}"),
             }
         };
+        stream.set_nonblocking(false).unwrap();
         stream
             .set_read_timeout(Some(Duration::from_secs(5)))
             .unwrap();

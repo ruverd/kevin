@@ -92,6 +92,25 @@ fn cli_init_routing_doctor_fallback_profile_edits_skill_install_and_generation()
     );
 }
 #[test]
+fn composition_preserves_piped_message_with_explicit_intent() {
+    let dir = tempfile::tempdir().unwrap();
+    let cwd = dir.path();
+    let input = "  Can you check TEST-44?\n  It failed twice.\n";
+    let intent = "Say I'll take a look after lunch.";
+
+    let reply = value(cwd, &["reply", "--intent", intent, "--json"], input);
+    assert_eq!(reply["data"]["request"]["intent"], intent);
+    assert_eq!(reply["data"]["request"]["messages"], json!([input]));
+
+    let rewrite = value(cwd, &["rewrite", "--intent", intent, "--json"], input);
+    assert_eq!(rewrite["data"]["request"]["draft"], input.trim());
+    assert_eq!(rewrite["data"]["request"]["messages"], json!([]));
+
+    let implicit_intent = value(cwd, &["reply", "--json"], input);
+    assert_eq!(implicit_intent["data"]["request"]["intent"], input.trim());
+    assert_eq!(implicit_intent["data"]["request"]["messages"], json!([]));
+}
+#[test]
 fn provider_rejects_invalid_json_failure_oversized_output_and_missing_executable() {
     let dir = init();
     for mode in ["invalid", "failure", "huge"] {
