@@ -1,4 +1,5 @@
 use kevin_core::{Envelope, Generator, Result};
+use serde::Serialize;
 use serde_json::{Value, json};
 use std::{
     io::{Read, Write},
@@ -96,20 +97,55 @@ impl Generator for CommandGenerator {
     }
 }
 
+pub struct OllamaGenerator<'a> {
+    pub model: Option<&'a str>,
+}
+
+impl Generator for OllamaGenerator<'_> {
+    fn generate(&self, envelope: &Envelope) -> Result<Value> {
+        let model = self
+            .model
+            .map(str::to_owned)
+            .or_else(|| std::env::var("KEVIN_MODEL").ok())
+            .filter(|model| !model.trim().is_empty())
+            .ok_or("Pass --model or set KEVIN_MODEL to an installed Ollama model.")?;
+        generate_ollama(
+            &envelope.system,
+            &envelope.data,
+            &envelope.output_schema,
+            &model,
+        )
+    }
+}
+
 pub fn ollama() -> Result<Value> {
     let envelope: Value = serde_json::from_str(&crate::storage::read_stdin()?)
         .map_err(|_| "Invalid envelope JSON")?;
-    if envelope.get("version").and_then(Value::as_f64) != Some(1.0)
-        || !envelope.get("system").is_some_and(Value::is_string)
-        || !envelope.get("data").is_some_and(Value::is_object)
-        || !envelope.get("outputSchema").is_some_and(Value::is_object)
-    {
+    let (Some(system), Some(data), Some(schema)) = (
+        envelope.get("system").and_then(Value::as_str),
+        envelope.get("data").filter(|value| value.is_object()),
+        envelope
+            .get("outputSchema")
+            .filter(|value| value.is_object()),
+    ) else {
+        return Err("Invalid composition envelope".into());
+    };
+    if envelope.get("version").and_then(Value::as_f64) != Some(1.0) {
         return Err("Invalid composition envelope".into());
     }
     let model = std::env::var("KEVIN_MODEL")
         .ok()
         .filter(|s| !s.is_empty())
         .ok_or("Set KEVIN_MODEL to an already installed local model.")?;
+    generate_ollama(system, data, schema, &model)
+}
+
+fn generate_ollama(
+    system: &str,
+    data: &impl Serialize,
+    schema: &Value,
+    model: &str,
+) -> Result<Value> {
     let port = std::env::var("KEVIN_OLLAMA_PORT").unwrap_or_else(|_| "11434".into());
     if port.is_empty()
         || port.len() > 5
@@ -124,11 +160,27 @@ pub fn ollama() -> Result<Value> {
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|_| "Cannot create local HTTP client")?;
-    let response=client.post(format!("http://127.0.0.1:{port}/api/chat")).json(&json!({
-        "model":model,"stream":false,
-        "messages":[{"role":"system","content":envelope["system"]},{"role":"user","content":serde_json::to_string(&envelope["data"]).map_err(|e|e.to_string())?}],
-        "format":envelope["outputSchema"],"options":{"temperature":0,"seed":42}
-    })).send().map_err(|_|"Cannot reach local Ollama server")?;
+    let data = serde_json::to_string(data).map_err(|e| e.to_string())?;
+    let response = client
+        .post(format!("http://127.0.0.1:{port}/api/chat"))
+        .json(&json!({
+            "model": model,
+            "stream": false,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": data}],
+            "format": schema,
+            "options": {"temperature": 0, "seed": 42}
+        }))
+        .send()
+        .map_err(|error| {
+            if error.is_timeout() {
+                "Local Ollama request timed out."
+            } else {
+                "Cannot reach local Ollama server. Check that it is running on the selected port."
+            }
+        })?;
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Err("Ollama HTTP 404. Check that the selected model is installed.".into());
+    }
     if !response.status().is_success() {
         return Err(format!("Ollama HTTP {}", response.status().as_u16()));
     }

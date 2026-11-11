@@ -12,6 +12,15 @@ use std::{
 
 #[test]
 fn ollama_bridge_sends_separate_roles_and_schema_to_real_loopback_protocol_fixture() {
+    check_ollama_protocol(false);
+}
+
+#[test]
+fn direct_ollama_uses_the_selected_model_and_validates_the_draft() {
+    check_ollama_protocol(true);
+}
+
+fn check_ollama_protocol(direct: bool) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     listener.set_nonblocking(true).unwrap();
@@ -69,18 +78,17 @@ fn ollama_bridge_sends_separate_roles_and_schema_to_real_loopback_protocol_fixtu
     let request =
         json!({"intent":"Write a review.","context":{"task":"review"},"preserve":["items[0].id"]});
     std::fs::write(dir.path().join("request.json"), request.to_string()).unwrap();
-    let child = Command::new(binary())
-        .args([
-            "review",
-            "--request",
-            "request.json",
-            "--model-command",
-            binary(),
-            "--model-arg",
-            "ollama",
-        ])
+    let mut command = Command::new(binary());
+    command.args(["review", "--request", "request.json"]);
+    if direct {
+        command.args(["--ollama", "--model", "fixture"]);
+        command.env("KEVIN_MODEL", "overridden");
+    } else {
+        command.args(["--model-command", binary(), "--model-arg", "ollama"]);
+        command.env("KEVIN_MODEL", "fixture");
+    }
+    let child = command
         .current_dir(dir.path())
-        .env("KEVIN_MODEL", "fixture")
         .env("KEVIN_OLLAMA_PORT", port.to_string())
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -109,6 +117,30 @@ fn ollama_bridge_sends_separate_roles_and_schema_to_real_loopback_protocol_fixtu
         json!({"model":"fixture","stream":false,"messages":[{"role":"system","content":e.system},{"role":"user","content":serde_json::to_string(&e.data).unwrap()}],"format":e.output_schema,"options":{"temperature":0,"seed":42}})
     );
 }
+
+#[test]
+fn direct_ollama_explains_missing_model_and_skips_unneeded_responses() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut command = Command::new(binary());
+    command
+        .args(["reply", "--ollama", "--request", "request.json"])
+        .current_dir(dir.path())
+        .env_remove("KEVIN_MODEL");
+    std::fs::write(dir.path().join("request.json"), r#"{"intent":"Reply."}"#).unwrap();
+    let output = command.output().unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Pass --model or set KEVIN_MODEL"));
+
+    std::fs::write(
+        dir.path().join("request.json"),
+        r#"{"intent":"Reply.","context":{"responseNeeded":false}}"#,
+    )
+    .unwrap();
+    let output = command.output().unwrap();
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+}
+
 #[test]
 fn ollama_rejects_remote_port_injection_and_invalid_envelopes_without_network() {
     for port in ["http://example.com", "0", "65536", "-1"] {

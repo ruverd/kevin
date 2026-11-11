@@ -41,15 +41,31 @@ pub fn run(args: Args) -> Result<()> {
         println!();
         return Ok(());
     };
+    if options.ollama
+        && !matches!(
+            command,
+            Command::Reply
+                | Command::Rewrite
+                | Command::Review
+                | Command::Explain
+                | Command::Summarize
+                | Command::Draft
+        )
+    {
+        return Err("--ollama requires a composition command, such as reply or review.".into());
+    }
     match command {
         Command::Eval => return evaluation::run(&options),
         Command::Ollama => return storage::print(&provider::ollama()?),
-        Command::Skill {
-            command: SkillCommand::Install { host },
-        } => {
-            let path = skills::install(&host, options.destination.as_deref())?;
-            println!("Installed {}", path.display());
-            return Ok(());
+        Command::Skill { command } => {
+            return match command {
+                SkillCommand::Install { host } => {
+                    skills::install(&host, options.destination.as_deref())
+                }
+                SkillCommand::Update { host, dry_run } => {
+                    skills::update(&host, options.destination.as_deref(), dry_run)
+                }
+            };
         }
         _ => {}
     }
@@ -254,7 +270,11 @@ fn create_voice(
 }
 fn composition(mode: &str, options: &Options, config: &Config, memory_path: &Path) -> Result<()> {
     let mut request = if let Some(file) = &options.request {
-        let request: Request = storage::read_json(file)?;
+        let request: Request = if file.as_os_str() == "-" {
+            parse(read_stdin_value()?)?
+        } else {
+            storage::read_json(file)?
+        };
         serde_json::to_value(request).map_err(|e| e.to_string())?
     } else {
         let body = stdin_text()?;
@@ -293,21 +313,27 @@ fn composition(mode: &str, options: &Options, config: &Config, memory_path: &Pat
     if options.json {
         return storage::print(&envelope);
     }
-    if options.prompt || options.model_command.is_none() {
+    let output = if options.ollama {
+        compose(
+            &envelope,
+            &provider::OllamaGenerator {
+                model: options.model.as_deref(),
+            },
+        )?
+    } else if let Some(command) = &options.model_command
+        && !options.prompt
+    {
+        compose(
+            &envelope,
+            &provider::CommandGenerator::new(command, &options.model_arg),
+        )?
+    } else {
         if !options.prompt {
             eprintln!("No model selected. Output is a prompt, not a generated reply.");
         }
         print!("{}", render_prompt(&envelope)?);
         return Ok(());
-    }
-    let command = options
-        .model_command
-        .as_deref()
-        .ok_or("Missing model command")?;
-    let output = compose(
-        &envelope,
-        &provider::CommandGenerator::new(command, &options.model_arg),
-    )?;
+    };
     if let Output::Draft { text } = output {
         println!("{text}");
     }
