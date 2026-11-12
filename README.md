@@ -32,7 +32,9 @@ No mandatory cloud account, Node/npm runtime, telemetry, database or model vendo
 
 ## Install
 
-Prebuilt binaries and a portable skill ZIP are available from [GitHub Releases](https://github.com/ruverd/kevin/releases/latest). Choose macOS ARM64 (Apple Silicon), Linux x86-64 or Windows x86-64, extract the archive, and put the executable on your PATH. Check the archive against the release's `SHA256SUMS`. Prebuilt binaries require no Rust, Node or npm installation. The v0.2.1 Linux download requires glibc 2.34 or newer.
+Prebuilt binaries and a portable skill ZIP are available from [GitHub Releases](https://github.com/ruverd/kevin/releases/latest). Choose macOS ARM64 (Apple Silicon), Linux x86-64 or Windows x86-64, extract the archive, and put the executable on your PATH. Check the archive against the release's `SHA256SUMS`. Prebuilt binaries require no Rust, Node or npm installation.
+
+Starting with v0.3.0, Linux x86-64 downloads use statically linked musl and are tested on Ubuntu 20.04. The v0.2.1 Linux download requires glibc 2.34 or newer.
 
 For direct agent use, extract the skill ZIP and copy the complete `kevin` folder, including `references`, into your [host's skill home](#use-the-agent-skill). No CLI is required.
 
@@ -47,7 +49,7 @@ kevin --version
 
 If a newly installed Rust toolchain is not on your shell's PATH, load its environment with `source "$HOME/.cargo/env"` first. During development, use `cargo run -p kevin -- <arguments>` from the checkout.
 
-The executable embeds the skill and all references. It runs without Node, npm or a source checkout. For a development build, download the [workflow artifact](https://github.com/ruverd/kevin/actions) for your OS and architecture, extract it and run `chmod +x kevin` on Unix. The Linux x86-64 CI artifact uses statically linked musl and runs `kevin eval` in Ubuntu 20.04 before upload.
+The executable embeds the skill and all references. It runs without Node, npm or a source checkout. For a development build, download the [workflow artifact](https://github.com/ruverd/kevin/actions) for your OS and architecture, extract it and run `chmod +x kevin` on Unix.
 
 ## Quick start
 
