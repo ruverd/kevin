@@ -618,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "kevin"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "clap",
@@ -633,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "kevin-core"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "indexmap",

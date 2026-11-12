@@ -15,3 +15,5 @@ Original code and documentation use [MIT](LICENSE). Check file-specific upstream
 ## Releases
 
 A pushed version tag does not create a GitHub Release. Match the tag to the workspace version and a commit with passing CI, then publish a GitHub Release for that existing tag with release notes, native binaries, the complete portable skill and `SHA256SUMS`. Use binaries from CI for that exact commit, retain the license in each archive, and verify the uploaded assets before publishing. Keep published tags immutable and update the README's download instructions when needed.
+
+Build the portable ZIP with the release binary. Run `kevin skill install generic --destination <staging-dir>`, add `LICENSE` to the resulting `kevin` directory, and archive the whole directory, including `.kevin-install.json`. This lets future CLI updates recognize the bundled files in a manually installed ZIP.
