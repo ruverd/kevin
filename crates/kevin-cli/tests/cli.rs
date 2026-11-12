@@ -85,11 +85,7 @@ fn cli_init_routing_doctor_fallback_profile_edits_skill_install_and_generation()
             .unwrap()
             .contains("Calibration workflow")
     );
-    assert!(
-        !run(cwd, &["skill", "install", "codex"], "")
-            .status
-            .success()
-    );
+    assert!(ok(cwd, &["skill", "install", "codex"], "").contains("Already installed"));
 }
 #[test]
 fn composition_preserves_piped_message_with_explicit_intent() {
@@ -109,6 +105,25 @@ fn composition_preserves_piped_message_with_explicit_intent() {
     let implicit_intent = value(cwd, &["reply", "--json"], input);
     assert_eq!(implicit_intent["data"]["request"]["intent"], input.trim());
     assert_eq!(implicit_intent["data"]["request"]["messages"], json!([]));
+}
+#[test]
+fn composition_reads_structured_request_from_stdin() {
+    let dir = tempfile::tempdir().unwrap();
+    let args = &["reply", "--request", "-", "--language", "pt-BR", "--json"];
+    let input = r#"{"intent":"Answer the message.","messages":["Test failed"],"context":{"language":"en-US"}}"#;
+    let envelope = value(dir.path(), args, input);
+    assert_eq!(envelope["data"]["request"]["intent"], "Answer the message.");
+    assert_eq!(
+        envelope["data"]["request"]["messages"],
+        json!(["Test failed"])
+    );
+    assert_eq!(envelope["data"]["plan"]["context"]["language"], "pt-BR");
+
+    for invalid in ["not JSON", r#"{"intent":"Reply.","unexpected":true}"#] {
+        let output = run(dir.path(), args, invalid);
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+    }
 }
 #[test]
 fn provider_rejects_invalid_json_failure_oversized_output_and_missing_executable() {

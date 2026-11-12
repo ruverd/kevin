@@ -89,12 +89,17 @@ The example files are included in the checkout. Requests can describe a task, au
 
 Without `--request`, you can pipe text to the CLI. With `--intent`, the piped text becomes a source message. `kevin rewrite` uses it as the draft instead.
 
+Use `--request -` to pipe a structured JSON request:
+
+```bash
+printf '%s\n' '{"intent":"Say I will take a look after lunch.","context":{"platform":"slack"}}' |
+  kevin reply --request - --json
+```
+
 To generate through an already running local Ollama server with an installed model:
 
 ```bash
-export KEVIN_MODEL=your-installed-model
-kevin reply --request examples/slack.json \
-  --model-command kevin --model-arg ollama
+kevin reply --ollama --model your-installed-model --request examples/slack.json
 ```
 
 This returns one draft. Kevin does not post it anywhere. For agent-native generation without a CLI model adapter, use the [skill](#use-the-agent-skill).
@@ -223,7 +228,16 @@ kevin skill install codex
 # Or: claude, cursor, generic
 ```
 
-The installer copies the complete embedded skill and refuses existing destinations. It does not edit global agent settings. You can also copy [skills/kevin](skills/kevin) manually, including its references.
+The installer copies the complete embedded skill into the project. Running it again with the same bundled files reports that the skill is already installed. You can also copy [skills/kevin](skills/kevin) manually, including its references.
+
+Preview and apply an update using a newer Kevin binary:
+
+```bash
+kevin skill update codex --dry-run
+kevin skill update codex
+```
+
+The preview lists the bundled files that would change. A locally edited, deleted or unrecognized bundled file blocks the update. If you want to keep an edit, merge the newer skill files by hand. The updater leaves extra files in place. It recognizes the shipped v0.2.0 and v0.2.1 skill files and records the installed bundle for future updates.
 
 | Host | Project-local location | Typical invocation |
 | --- | --- | --- |
@@ -240,6 +254,7 @@ No runtime is required for direct skill use. Hosts differ in history, tool acces
 | --- | --- |
 | `--json` | Validated context, selected voices, filtered memory and constraints |
 | `--prompt` | Portable composition instructions and input data |
+| `--ollama [--model <name>]` | Draft from the local Ollama server. The model defaults to `KEVIN_MODEL`. |
 | `--model-command <executable>` | Actual generation through your chosen adapter |
 
 A model adapter reads one envelope JSON from stdin and writes one result JSON to stdout. Repeat `--model-arg` for arguments; Kevin invokes them without a shell. The native `kevin ollama` adapter uses loopback port 11434, temperature 0 and seed 42; `KEVIN_OLLAMA_PORT` can select another loopback port. It starts no server and downloads no models.

@@ -30,6 +30,7 @@ pub struct Options {
     pub answers: Option<PathBuf>,
     #[arg(long, global = true)]
     pub save: bool,
+    /// Read a request from a JSON file. Use '-' to read JSON from stdin.
     #[arg(long, global = true)]
     pub request: Option<PathBuf>,
     #[arg(long, global = true)]
@@ -70,6 +71,12 @@ pub struct Options {
     pub json: bool,
     #[arg(long, global = true)]
     pub prompt: bool,
+    /// Generate directly with the local Ollama server.
+    #[arg(long, global = true, conflicts_with_all = ["model_command", "model_arg", "json", "prompt"])]
+    pub ollama: bool,
+    /// Use an installed Ollama model. Defaults to KEVIN_MODEL.
+    #[arg(long, global = true, requires = "ollama")]
+    pub model: Option<String>,
     #[arg(long, global = true)]
     pub model_command: Option<String>,
     #[arg(long, global = true, allow_hyphen_values = true)]
@@ -142,5 +149,13 @@ pub enum IdentityCommand {
 }
 #[derive(Debug, Subcommand)]
 pub enum SkillCommand {
+    /// Install the bundled skill for a host.
     Install { host: String },
+    /// Update bundled files while protecting local changes.
+    Update {
+        host: String,
+        /// Show which files would change or block the update.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }

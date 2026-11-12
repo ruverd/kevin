@@ -1,0 +1,26 @@
+{
+  "SKILL.md": [
+    "91d8b9ac6bde085bf9dc137df0dbc1a0d3d62b486f6b7bdfec0b9386fb875a87",
+    "02f811f2284feb78bfe57a1c08c0273351d27af76d6aac9a2c4ca38da5eb3453"
+  ],
+  "references/communication.md": [
+    "5bb8de750eddd3a175d5683c1acca11a5a56eea7ee6ebde66527f2d2b1204ed2"
+  ],
+  "references/identity.md": [
+    "81349a998d2e989a0fc21e46c35c10e114d40027cb24a955990bbd6529101f57"
+  ],
+  "references/memory.md": [
+    "28a5fd2d83133ffd2a23db7d85a322fe16c5af9a48172e508a5c9db1dcc91597"
+  ],
+  "references/routing.md": [
+    "3b007c48cd7f7943f85ea00b7ca15653b0f50a4cba4e3eeb0fae7b7857a3006e",
+    "5232568a4af54318c3687892824576cc51262c4507ff2d2316ae2f9cffb9dc1c"
+  ],
+  "references/voice-interview.md": [
+    "bb4a9de8f7b2ee600d87e6b2aba58443a7172642c2ae27c554ed2ab9b2423e73"
+  ],
+  "references/voices.md": [
+    "608dbbb016ab90906ed4a4b19224566db69083b302fc90e706c1fb201e71871c",
+    "d37ecc76fb9d529eaacf837b9b411fcb2d56a4b175d584a6b92552fd733c7b31"
+  ]
+}
