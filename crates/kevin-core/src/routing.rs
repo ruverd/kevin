@@ -3,6 +3,10 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{cmp::Reverse, collections::HashSet, sync::LazyLock};
 
+static HOSTNAME: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(?-u:\b)(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?-u:\b)")
+        .expect("constant regex")
+});
 static CRITICAL: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?-u:\b)(incident|outage|sev[ -]?[01]|data loss|security|vulnerability|credential leak|breach|incidente|indisponibilidade|perda de dados|vulnerabilidade|seguran[çc]a)(?-u:\b)").expect("constant regex")
 });
@@ -59,13 +63,14 @@ pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
         .chain(request.messages.iter().map(String::as_str))
         .collect::<Vec<_>>()
         .join("\n");
+    let assessment_text = HOSTNAME.replace_all(&content, " ");
     let mut reasons = vec![];
-    if CRITICAL.is_match(&content) {
+    if CRITICAL.is_match(&assessment_text) {
         context.seriousness = Seriousness::Critical;
         reasons.push("Conservative critical-topic detection.".into());
     } else if context.seriousness != Seriousness::Critical
-        && (SENSITIVE.is_match(&content)
-            || (CONTEXTUAL_SENSITIVE.is_match(&content)
+        && (SENSITIVE.is_match(&assessment_text)
+            || (CONTEXTUAL_SENSITIVE.is_match(&assessment_text)
                 && !has_assigned_slack_voice(
                     request,
                     &context,
