@@ -130,6 +130,8 @@ fn configured_slack_voice_can_use_optional_humor_with_incomplete_context() {
     for message in [
         "CI blocked approval until the build finished.",
         "O CI está bloqueado e a aprovação está pendente.",
+        "The CI runner could not resolve security.ubuntu.com while installing Chromium.",
+        "The package mirror <https://security.ubuntu.com/ubuntu|security.ubuntu.com> was unreachable from CI.",
     ] {
         let mut input = request.clone();
         input["messages"] = json!([message]);
@@ -163,7 +165,7 @@ fn configured_slack_voice_can_use_optional_humor_with_incomplete_context() {
     let mut off = request.clone();
     off["humor"] = json!("off");
     let mut security = request.clone();
-    security["facts"] = json!(["Security vulnerability confirmed."]);
+    security["facts"] = json!(["A security vulnerability was confirmed on security.ubuntu.com."]);
     let mut harassment = request.clone();
     harassment["messages"] = json!(["Our manager is handling a harassment report."]);
     let mut other_voice = request.clone();
