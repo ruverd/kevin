@@ -18,6 +18,16 @@ static CONTEXTUAL_SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)(?-u:\b)(blocked|approval|disagreement|stressed|bloquead[oa]|aprova[çc][aã]o|desentendimento|estressad[oa])(?-u:\b)").expect("constant regex")
 });
 
+static CHANDLER_SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(concat!(
+        r"(?i)\b(grief|grieving|bereavement|condolences|death in the family|death of a family member",
+        r"|family emergency|medical diagnosis|hospitalized|personal crisis|panic attack|suffering",
+        r"|stressed|disagreement|serious correction|luto|condolências|falecimento|emergência familiar",
+        r"|diagnóstico médico|sofrimento|estressad[oa]|desentendimento|correção séria)\b",
+    ))
+    .expect("constant regex")
+});
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Analysis {
     pub context: Context,
@@ -47,6 +57,7 @@ pub enum HumorMode {
     Off,
     Optional,
     Invited,
+    Required,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct HumorDecision {
@@ -70,6 +81,15 @@ pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
         reasons.push("Conservative critical-topic detection.".into());
     } else if context.seriousness != Seriousness::Critical
         && (SENSITIVE.is_match(&assessment_text)
+            || (CHANDLER_SENSITIVE.is_match(&assessment_text)
+                && is_chandler_slack_reply(
+                    &context,
+                    selected_voice(
+                        request,
+                        config,
+                        matching_rule(config, &context).ok().flatten(),
+                    ),
+                ))
             || (CONTEXTUAL_SENSITIVE.is_match(&assessment_text)
                 && !has_assigned_slack_voice(
                     request,
@@ -145,16 +165,24 @@ fn has_assigned_slack_voice(request: &Request, context: &Context, rule: Option<&
         })
 }
 
+fn is_chandler_slack_reply(context: &Context, voice: &str) -> bool {
+    context.platform == Platform::Slack && context.task == Task::Reply && voice == "chandler"
+}
+
+fn selected_voice<'a>(request: &'a Request, config: &'a Config, rule: Option<&'a Rule>) -> &'a str {
+    request
+        .voice
+        .as_deref()
+        .unwrap_or_else(|| rule.map_or(config.routing.fallback.as_str(), |r| r.voice.as_str()))
+}
+
 fn route_with_rule<'a>(
     request: &Request,
     config: &'a Config,
     analysis: &Analysis,
 ) -> Result<(Route, Option<&'a Rule>)> {
     let rule = matching_rule(config, &analysis.context)?;
-    let name = request
-        .voice
-        .as_deref()
-        .unwrap_or_else(|| rule.map_or(config.routing.fallback.as_str(), |r| r.voice.as_str()));
+    let name = selected_voice(request, config, rule);
     let mut reasons = analysis.reasons.clone();
     reasons.push(format!(
         "{} voice: {name}",
@@ -230,6 +258,10 @@ fn constrain_humor_for_route(
     route: &mut Route,
     slack_voice_assignment: bool,
 ) -> HumorDecision {
+    let chandler_reply = route
+        .voices
+        .first()
+        .is_some_and(|voice| is_chandler_slack_reply(context, voice));
     let reason = if request.humor == HumorSetting::Off {
         Some("User disabled humor.")
     } else if matches!(
@@ -249,6 +281,7 @@ fn constrain_humor_for_route(
     } else if !context.existing_humor
         && context.energy != Energy::Playful
         && !slack_voice_assignment
+        && !chandler_reply
     {
         Some("No conversational invitation for humor.")
     } else if route.traits.humor == 0.0 {
@@ -270,6 +303,16 @@ fn constrain_humor_for_route(
         && context.audience != Audience::Unknown;
     if !invited {
         route.traits.sarcasm = 0.0;
+    }
+    if chandler_reply {
+        return HumorDecision {
+            mode: HumorMode::Required,
+            styles: ["understatement", "dry observation"]
+                .map(String::from)
+                .to_vec(),
+            reason: "An eligible Chandler Slack reply calls for one light contextual observation."
+                .into(),
+        };
     }
     HumorDecision {
         mode: if invited {
