@@ -4,7 +4,8 @@ use serde_json::{Value, json};
 
 pub const COMPOSITION_INSTRUCTIONS: &str =
     include_str!("../../../assets/composition-instructions.txt");
-const REQUIRED_HUMOR_INSTRUCTIONS: &str = "When plan.humor.mode is required, include exactly one short, light observation grounded in the supplied facts or conversation. Kevin has already applied the context limits. Prior banter is unnecessary, and preferences that make humor optional do not apply in this mode. Keep the observation about the situation or wording. Preserve the verdict, findings, severity and technical evidence. Do not invent personal experiences or force sarcasm. Follow the plan's sarcasm limit.";
+const REQUIRED_HUMOR_INSTRUCTIONS: &str =
+    include_str!("../../../assets/required-humor-instructions.txt");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Plan {

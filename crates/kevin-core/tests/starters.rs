@@ -119,7 +119,12 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
     let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
     assert_eq!(envelope.data.request, parsed);
     let prompt = render_prompt(&envelope).unwrap();
-    assert!(prompt.contains("include exactly one short, light observation"));
+    assert!(prompt.contains("takes precedence over voice or identity guidance"));
+    assert!(prompt.contains("already carries a necessary fact, reason or next step"));
+    assert!(prompt.contains("Skip detachable jokes"));
+    assert!(prompt.contains("plan.humor.styles and plan.route.traits.humor"));
+    assert!(prompt.contains("a plain response is always valid"));
+    assert!(prompt.contains(r#""humor": 0.5"#));
     assert!(prompt.contains(r#""mode": "required""#));
     for fact in request["facts"].as_array().unwrap() {
         assert!(prompt.contains(fact.as_str().unwrap()));
@@ -176,30 +181,32 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
 
     let mut off = request.clone();
     off["humor"] = json!("off");
-    let mut security = request.clone();
-    security["facts"] = json!(["A security vulnerability was confirmed on security.ubuntu.com."]);
-    let mut harassment = request.clone();
-    harassment["messages"] = json!(["Our manager is handling a harassment report."]);
-    let mut personal = request.clone();
-    personal["messages"] = json!(["I'm grieving the death of a family member."]);
-    let mut tense = request.clone();
-    tense["messages"] = json!(["I'm stressed and need to make a serious correction."]);
     let mut other_voice = request.clone();
     other_voice["voice"] = json!("tony-stark");
     let mut automatic = request.clone();
     automatic.as_object_mut().unwrap().remove("voice");
-    for input in [
-        off,
-        security,
-        harassment,
-        personal,
-        tense,
-        other_voice,
-        automatic,
-    ] {
+    let sensitive_inputs = [
+        "A security vulnerability was confirmed on security.ubuntu.com.",
+        "Our manager is handling a harassment report.",
+        "I'm grieving the death of a family member.",
+        "I'm stressed and need to make a serious correction.",
+        "She received a medical diagnosis.",
+        "We are investigating an outage.",
+    ]
+    .map(|message| {
+        let mut input = request.clone();
+        input["messages"] = json!([message]);
+        input
+    });
+    for input in [off, other_voice, automatic]
+        .into_iter()
+        .chain(sensitive_inputs)
+    {
         let parsed = parse(input).unwrap();
         let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
         assert_eq!(envelope.data.plan.humor.mode, HumorMode::Off);
+        assert_eq!(envelope.data.plan.route.traits.humor, 0.0);
+        assert_eq!(envelope.data.plan.route.traits.sarcasm, 0.0);
         assert_eq!(envelope.system, COMPOSITION_INSTRUCTIONS);
     }
 
@@ -247,4 +254,53 @@ fn casual_chandler_slack_reply_requires_light_humor_without_banter() {
     let envelope = compile(other_voice, config, None).unwrap();
     assert_eq!(envelope.data.plan.humor.mode, HumorMode::Optional);
     assert_eq!(envelope.system, COMPOSITION_INSTRUCTIONS);
+}
+
+#[test]
+fn slack_channel_traits_reach_the_composer_at_the_resolved_intensity() {
+    let mut config = default_config();
+    for (channel, voice, intensity) in [
+        ("quiet-queue", "chandler", 0.15),
+        ("plain-queue", "chandler", 0.0),
+        ("team-chat", "witty-engineer", 0.75),
+    ] {
+        config.routing.rules.push(
+            parse(json!({
+                "name": channel, "priority": 110,
+                "when": {"platform": "slack", "channel": channel},
+                "voice": voice, "overrides": {"humor": intensity}
+            }))
+            .unwrap(),
+        );
+    }
+    let config = serde_json::to_value(config).unwrap();
+
+    for (channel, voice, intensity, mode) in [
+        ("quiet-queue", "chandler", 0.15, HumorMode::Required),
+        ("plain-queue", "chandler", 0.0, HumorMode::Off),
+        ("team-chat", "witty-engineer", 0.75, HumorMode::Optional),
+    ] {
+        let envelope = compile(
+            json!({
+                "intent": "Reply with the updated demo time.",
+                "facts": ["The demo moved to 3 PM."],
+                "context": {
+                    "platform": "slack", "channel": channel, "task": "reply",
+                    "audience": "teammate", "seriousness": "ordinary", "energy": "playful"
+                }
+            }),
+            config.clone(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(envelope.data.plan.route.voices, [voice]);
+        assert_eq!(envelope.data.plan.route.traits.humor, intensity);
+        assert_eq!(envelope.data.plan.humor.mode, mode);
+        assert_eq!(
+            envelope.system != COMPOSITION_INSTRUCTIONS,
+            mode == HumorMode::Required
+        );
+        let prompt = render_prompt(&envelope).unwrap();
+        assert!(prompt.contains(&format!(r#""humor": {intensity:?}"#)));
+    }
 }
