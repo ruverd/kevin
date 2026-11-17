@@ -30,7 +30,7 @@ Kevin's CLI uses versioned JSON. A minimal valid complete configuration:
 }
 ```
 
-All traits range from 0 to 1, indicating relative tendencies, not probabilities or measurements. Directness is how soon the point appears; formality is register; warmth is interpersonal acknowledgement; humor is permission for optional humor; sarcasm is permission for restrained irony; verbosity is preferred detail. Context limits still apply. A zero humor trait disables humor.
+All traits range from 0 to 1, indicating relative tendencies, not probabilities or measurements. Directness is how soon the point appears; formality is register; warmth is interpersonal acknowledgement; humor is permission for optional humor; sarcasm is permission for restrained sarcastic phrasing within context limits; verbosity is preferred detail. Context limits still apply. A zero humor trait disables humor. Situational irony, brief personification and expectation reversals can use humor with sarcasm at zero; they do not grant permission for ridicule or contempt.
 
 Explicit preferences such as "never use sarcasm" remain constraints even if a voice's numeric traits suggest otherwise. The model must enforce semantic preferences; the deterministic CLI cannot understand every natural-language preference. For machine-enforced humor limits, set request `humor: "off"`.
 

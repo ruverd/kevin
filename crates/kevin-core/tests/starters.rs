@@ -1,5 +1,7 @@
 use kevin_core::*;
 use serde_json::json;
+mod common;
+use common::current_scenario_humor;
 #[test]
 fn developer_voice_pack_defaults_to_stark_and_keeps_serious_context_limits() {
     let config = default_config();
@@ -42,14 +44,11 @@ fn chandler_can_follow_existing_banter_within_context_limits() {
     assert_eq!(envelope.data.plan.route.voices, ["chandler"]);
     assert_eq!(envelope.data.plan.route.traits.warmth, 0.75);
     assert_eq!(envelope.data.plan.route.traits.verbosity, 0.15);
-    assert_eq!(envelope.data.plan.humor.mode, HumorMode::Required);
+    assert_eq!(envelope.data.plan.humor.mode, HumorMode::Invited);
     assert_eq!(envelope.data.plan.route.traits.sarcasm, 0.1);
     for context in [
-        json!({"task":"review", "seriousness":"ordinary", "audience":"teammate", "energy":"playful", "existingHumor":true}),
         json!({"seriousness":"critical", "audience":"teammate", "energy":"playful", "existingHumor":true}),
         json!({"seriousness":"sensitive", "audience":"teammate", "energy":"playful", "existingHumor":true}),
-        json!({"seriousness":"ordinary", "audience":"teammate", "energy":"unknown", "existingHumor":false}),
-        json!({}),
     ] {
         let request: Request = parse(json!({
             "intent": "Preserve the supplied facts.", "voice": "chandler", "context": context
@@ -63,7 +62,7 @@ fn chandler_can_follow_existing_banter_within_context_limits() {
 }
 
 #[test]
-fn original_thirty_routing_scenarios_remain_valid_with_original_v1_profile() {
+fn original_routing_choices_remain_valid_with_updated_humor_policy() {
     let profile: serde_json::Value = serde_json::from_str(include_str!(
         "../../../tests/fixtures/default-config-v1.json"
     ))
@@ -87,7 +86,7 @@ fn original_thirty_routing_scenarios_remain_valid_with_original_v1_profile() {
             );
             assert_eq!(
                 serde_json::to_value(e.data.plan.humor.mode).unwrap(),
-                scenario["expectedHumor"]
+                current_scenario_humor(&scenario, forced)
             );
         }
     }
@@ -119,13 +118,15 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
     let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
     assert_eq!(envelope.data.request, parsed);
     let prompt = render_prompt(&envelope).unwrap();
-    assert!(prompt.contains("takes precedence over voice or identity guidance"));
-    assert!(prompt.contains("already carries a necessary fact, reason or next step"));
-    assert!(prompt.contains("Skip detachable jokes"));
-    assert!(prompt.contains("plan.humor.styles and plan.route.traits.humor"));
-    assert!(prompt.contains("a plain response is always valid"));
+    assert!(prompt.contains("Permitted humor is always optional"));
+    assert!(
+        prompt.contains("A short closing sentence or aside may carry the humorous observation")
+    );
+    assert!(prompt.contains("It need not contain a new fact"));
+    assert!(prompt.contains("plan.humor.styles, plan.route.traits.humor"));
+    assert!(prompt.contains("not permission to ignore the selected personality"));
     assert!(prompt.contains(r#""humor": 0.5"#));
-    assert!(prompt.contains(r#""mode": "required""#));
+    assert!(prompt.contains(r#""mode": "optional""#));
     for fact in request["facts"].as_array().unwrap() {
         assert!(prompt.contains(fact.as_str().unwrap()));
     }
@@ -134,7 +135,7 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
     assert_eq!(plan.context.audience, Audience::Unknown);
     assert_eq!(plan.context.energy, Energy::Unknown);
     assert_eq!(plan.route.voices, ["chandler"]);
-    assert_eq!(plan.humor.mode, HumorMode::Required);
+    assert_eq!(plan.humor.mode, HumorMode::Optional);
     assert_eq!(plan.route.traits.humor, 0.5);
     assert_eq!(plan.route.traits.sarcasm, 0.0);
     assert!(
@@ -145,8 +146,8 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
     );
 
     for message in [
-        "CI blocked approval until the build finished.",
-        "O CI está bloqueado e a aprovação está pendente.",
+        "Approval is pending a routine review.",
+        "A aprovação está pendente de revisão.",
         "The CI runner could not resolve security.ubuntu.com while installing Chromium.",
         "The package mirror <https://security.ubuntu.com/ubuntu|security.ubuntu.com> was unreachable from CI.",
     ] {
@@ -158,7 +159,7 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
             .data
             .plan;
         assert_eq!(plan.context.seriousness, Seriousness::Unknown);
-        assert_eq!(plan.humor.mode, HumorMode::Required);
+        assert_eq!(plan.humor.mode, HumorMode::Optional);
     }
 
     for (field, value) in [
@@ -167,8 +168,6 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
         ("energy", "tense"),
         ("audience", "external"),
         ("audience", "public"),
-        ("task", "review"),
-        ("platform", "github"),
     ] {
         let mut input = request.clone();
         input["context"][field] = json!(value);
@@ -181,11 +180,9 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
 
     let mut off = request.clone();
     off["humor"] = json!("off");
-    let mut other_voice = request.clone();
-    other_voice["voice"] = json!("tony-stark");
-    let mut automatic = request.clone();
-    automatic.as_object_mut().unwrap().remove("voice");
     let sensitive_inputs = [
+        "CI is blocked pending approval.",
+        "O CI está bloqueado e a aprovação está pendente.",
         "A security vulnerability was confirmed on security.ubuntu.com.",
         "Our manager is handling a harassment report.",
         "I'm grieving the death of a family member.",
@@ -198,10 +195,7 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
         input["messages"] = json!([message]);
         input
     });
-    for input in [off, other_voice, automatic]
-        .into_iter()
-        .chain(sensitive_inputs)
-    {
+    for input in [off].into_iter().chain(sensitive_inputs) {
         let parsed = parse(input).unwrap();
         let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
         assert_eq!(envelope.data.plan.humor.mode, HumorMode::Off);
@@ -217,7 +211,7 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
 }
 
 #[test]
-fn casual_chandler_slack_reply_requires_light_humor_without_banter() {
+fn casual_chandler_slack_reply_permits_optional_humor_without_banter() {
     let config = serde_json::to_value(default_config()).unwrap();
     let request = json!({
         "intent": "Reply with the updated timing.",
@@ -232,7 +226,7 @@ fn casual_chandler_slack_reply_requires_light_humor_without_banter() {
         }
     });
     let envelope = compile(request.clone(), config.clone(), None).unwrap();
-    assert_eq!(envelope.data.plan.humor.mode, HumorMode::Required);
+    assert_eq!(envelope.data.plan.humor.mode, HumorMode::Optional);
     assert_eq!(envelope.data.plan.route.traits.sarcasm, 0.0);
 
     for (field, value) in [
@@ -276,7 +270,7 @@ fn slack_channel_traits_reach_the_composer_at_the_resolved_intensity() {
     let config = serde_json::to_value(config).unwrap();
 
     for (channel, voice, intensity, mode) in [
-        ("quiet-queue", "chandler", 0.15, HumorMode::Required),
+        ("quiet-queue", "chandler", 0.15, HumorMode::Optional),
         ("plain-queue", "chandler", 0.0, HumorMode::Off),
         ("team-chat", "witty-engineer", 0.75, HumorMode::Optional),
     ] {
@@ -296,10 +290,7 @@ fn slack_channel_traits_reach_the_composer_at_the_resolved_intensity() {
         assert_eq!(envelope.data.plan.route.voices, [voice]);
         assert_eq!(envelope.data.plan.route.traits.humor, intensity);
         assert_eq!(envelope.data.plan.humor.mode, mode);
-        assert_eq!(
-            envelope.system != COMPOSITION_INSTRUCTIONS,
-            mode == HumorMode::Required
-        );
+        assert_eq!(envelope.system, COMPOSITION_INSTRUCTIONS);
         let prompt = render_prompt(&envelope).unwrap();
         assert!(prompt.contains(&format!(r#""humor": {intensity:?}"#)));
     }

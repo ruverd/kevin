@@ -15,10 +15,10 @@ static SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("constant regex")
 });
 static CONTEXTUAL_SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)(?-u:\b)(blocked|approval|disagreement|stressed|bloquead[oa]|aprova[çc][aã]o|desentendimento|estressad[oa])(?-u:\b)").expect("constant regex")
+    Regex::new(r"(?i)(?-u:\b)(blocked|disagreement|stressed|bloquead[oa]|desentendimento|estressad[oa])(?-u:\b)").expect("constant regex")
 });
 
-static CHANDLER_SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
+static PERSONAL_SENSITIVE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(concat!(
         r"(?i)\b(grief|grieving|bereavement|condolences|death in the family|death of a family member",
         r"|family emergency|medical diagnosis|hospitalized|personal crisis|panic attack|suffering",
@@ -57,6 +57,7 @@ pub enum HumorMode {
     Off,
     Optional,
     Invited,
+    /// Retained for decoding older plans; current routing never requires humor.
     Required,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -81,21 +82,8 @@ pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
         reasons.push("Conservative critical-topic detection.".into());
     } else if context.seriousness != Seriousness::Critical
         && (SENSITIVE.is_match(&assessment_text)
-            || (CHANDLER_SENSITIVE.is_match(&assessment_text)
-                && is_chandler_slack_reply(
-                    &context,
-                    selected_voice(
-                        request,
-                        config,
-                        matching_rule(config, &context).ok().flatten(),
-                    ),
-                ))
-            || (CONTEXTUAL_SENSITIVE.is_match(&assessment_text)
-                && !has_assigned_slack_voice(
-                    request,
-                    &context,
-                    matching_rule(config, &context).ok().flatten(),
-                )))
+            || PERSONAL_SENSITIVE.is_match(&assessment_text)
+            || CONTEXTUAL_SENSITIVE.is_match(&assessment_text))
     {
         context.seriousness = Seriousness::Sensitive;
         reasons.push("Conservative sensitive-topic detection.".into());
@@ -155,18 +143,6 @@ fn matching_rule<'a>(config: &'a Config, context: &Context) -> Result<Option<&'a
         .into_iter()
         .max_by_key(|(index, rule)| (rule.priority, Reverse(*index)))
         .map(|(_, rule)| rule))
-}
-
-fn has_assigned_slack_voice(request: &Request, context: &Context, rule: Option<&Rule>) -> bool {
-    context.task == Task::Reply
-        && rule.is_some_and(|rule| {
-            rule.when.platform == Some(Platform::Slack)
-                && request.voice.as_deref() == Some(rule.voice.as_str())
-        })
-}
-
-fn is_chandler_slack_reply(context: &Context, voice: &str) -> bool {
-    context.platform == Platform::Slack && context.task == Task::Reply && voice == "chandler"
 }
 
 fn selected_voice<'a>(request: &'a Request, config: &'a Config, rule: Option<&'a Rule>) -> &'a str {
@@ -242,48 +218,22 @@ pub(crate) fn plan_route(
     config: &Config,
     analysis: &Analysis,
 ) -> Result<(Route, HumorDecision)> {
-    let (mut route, rule) = route_with_rule(request, config, analysis)?;
-    let context = &analysis.context;
-    let slack_voice_assignment = has_assigned_slack_voice(request, context, rule);
-    let humor = constrain_humor_for_route(request, context, &mut route, slack_voice_assignment);
+    let mut route = route_voice(request, config, analysis)?;
+    let humor = constrain_humor(request, &analysis.context, &mut route);
     Ok((route, humor))
 }
 pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) -> HumorDecision {
-    constrain_humor_for_route(request, context, route, false)
-}
-
-fn constrain_humor_for_route(
-    request: &Request,
-    context: &Context,
-    route: &mut Route,
-    slack_voice_assignment: bool,
-) -> HumorDecision {
-    let chandler_reply = route
-        .voices
-        .first()
-        .is_some_and(|voice| is_chandler_slack_reply(context, voice));
     let reason = if request.humor == HumorSetting::Off {
         Some("User disabled humor.")
     } else if matches!(
         context.seriousness,
         Seriousness::Sensitive | Seriousness::Critical
-    ) || (context.seriousness == Seriousness::Unknown && !slack_voice_assignment)
-    {
-        Some("Seriousness is sensitive, critical, or unknown.")
+    ) {
+        Some("Seriousness is sensitive or critical.")
     } else if context.energy == Energy::Tense {
         Some("Tense context.")
-    } else if matches!(context.task, Task::Review | Task::PrDescription) {
-        Some("Technical findings and evidence take priority.")
-    } else if matches!(context.audience, Audience::External | Audience::Public)
-        || (context.audience == Audience::Unknown && !slack_voice_assignment)
-    {
+    } else if matches!(context.audience, Audience::External | Audience::Public) {
         Some("No established audience permission for humor.")
-    } else if !context.existing_humor
-        && context.energy != Energy::Playful
-        && !slack_voice_assignment
-        && !chandler_reply
-    {
-        Some("No conversational invitation for humor.")
     } else if route.traits.humor == 0.0 {
         Some("Selected identity or voice disables humor.")
     } else {
@@ -304,24 +254,22 @@ fn constrain_humor_for_route(
     if !invited {
         route.traits.sarcasm = 0.0;
     }
-    if chandler_reply {
-        return HumorDecision {
-            mode: HumorMode::Required,
-            styles: ["understatement", "dry observation"]
-                .map(String::from)
-                .to_vec(),
-            reason: "An eligible Chandler Slack reply calls for light wit in the wording.".into(),
-        };
-    }
     HumorDecision {
         mode: if invited {
             HumorMode::Invited
         } else {
             HumorMode::Optional
         },
-        styles: ["understatement", "dry observation", "playful exaggeration"]
-            .map(String::from)
-            .to_vec(),
+        styles: [
+            "understatement",
+            "dry observation",
+            "playful exaggeration",
+            "situational irony",
+            "brief personification",
+            "expectation reversal",
+        ]
+        .map(String::from)
+        .to_vec(),
         reason: "Humor may fit; omit it whenever forced or less clear than a plain reply.".into(),
     }
 }

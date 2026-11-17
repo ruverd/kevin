@@ -31,14 +31,21 @@ pub fn run(options: &Options) -> Result<()> {
                     .as_str()
                     .ok_or("Invalid scenario")?
             };
+            let expected_humor = if forced {
+                scenario
+                    .get("expectedForcedHumor")
+                    .unwrap_or(&scenario["expectedHumor"])
+            } else {
+                &scenario["expectedHumor"]
+            };
             if envelope.data.plan.route.voices[0] != expected
                 || serde_json::to_value(&envelope.data.plan.humor.mode)
                     .map_err(|e| e.to_string())?
-                    != scenario["expectedHumor"]
+                    != *expected_humor
             {
                 return Err(format!("Routing expectation failed: {}", scenario["id"]));
             }
-            if scenario["expectedHumor"] == "off"
+            if expected_humor == "off"
                 && (envelope.data.plan.route.traits.humor != 0.0
                     || envelope.data.plan.route.traits.sarcasm != 0.0)
             {

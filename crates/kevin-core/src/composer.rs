@@ -4,8 +4,6 @@ use serde_json::{Value, json};
 
 pub const COMPOSITION_INSTRUCTIONS: &str =
     include_str!("../../../assets/composition-instructions.txt");
-const REQUIRED_HUMOR_INSTRUCTIONS: &str =
-    include_str!("../../../assets/required-humor-instructions.txt");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Plan {
@@ -53,14 +51,9 @@ pub fn compile_typed(request: &Request, config: &Config, memory: &Memory) -> Res
     let analysis = analyze_context(request, config);
     let (route, humor) = plan_route(request, config, &analysis)?;
     let memory = select_memory(&memory, &route.voices);
-    let system = if humor.mode == HumorMode::Required {
-        format!("{COMPOSITION_INSTRUCTIONS}\n\n{REQUIRED_HUMOR_INSTRUCTIONS}")
-    } else {
-        COMPOSITION_INSTRUCTIONS.into()
-    };
     Ok(Envelope {
         version: Version1,
-        system,
+        system: COMPOSITION_INSTRUCTIONS.into(),
         data: CompositionData {
             request: request.clone(),
             identity: CompositionIdentity {

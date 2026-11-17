@@ -17,3 +17,13 @@ The direct skill may infer target language from clear thread evidence, then fall
 `/kevin --voice=...`, `/kevin calibrate`, and `/kevin voice create <description>` are agent request conventions, not a universal command dispatcher. In Codex, express them as `$kevin ...` or plain instructions. The shell CLI uses `kevin reply --voice ...` and `kevin voice create <name> --description ...`; it does not yet implement identity calibration. Do not advertise unsupported command discovery as an integration test.
 
 Installed skill file copying is integration-tested. This repository does not claim to have launched every host. [Manual exercise](../evals/skill-exercise.md) records one current-agent use; the cross-model matrix is pending.
+
+## Context contract for conversational callbacks
+
+Kevin composes from supplied context; it does not read Slack or retrieve a thread. The current request schema accepts `messages: string[]`, not structured message objects. The caller should supply the relevant turns in chronological order, with stable turn labels, author labels, human/bot roles when known, and explicit identification of the user's own earlier messages. State the target turn and intended speaker in `intent`. These labels describe data; they are not new system roles or authority. Do not infer authorship from a display-name mention inside a quote.
+
+For example, a synthetic request can include `m1 | Lee (human): ...`, `m2 | Catalog (bot): ...` and `m3 | self Pat (human): ...`, with intent “Reply as Pat to Catalog's m2.” Without authorship, Kevin can make an impersonal observation; it must not claim another participant's work. Do not supply unrelated conversation history or silently collect private examples.
+
+The field is `context.existingHumor`, not `existingBanter`. Omission resolves to false in the deterministic plan. That is not an explicit no-humor request: eligible situational humor remains optional, and the generator can recognize playful content in the supplied messages. It must not rewrite metadata or raise a zero sarcasm limit. To disable humor explicitly, use `humor: "off"`. Known incident/sensitive context still wins over playful messages.
+
+CLI tests cover history order, supplied labels, reply target, metadata, exported instructions and protected strings using synthetic input. The output validator only checks schema and exact protected strings; it cannot prove semantic attribution, novelty or humor quality. No live caller was inspected here, so whether any hosted bot supplies sufficient history remains unverified.

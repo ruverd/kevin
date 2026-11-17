@@ -19,7 +19,7 @@ fn no_humor_applies_after_blends_and_highest_priority_rule_overrides() {
     let mut c = config();
     c["routing"]["rules"].as_array_mut().unwrap().insert(0,json!({"name":"force-humor","priority":1000,"when":{"platform":"slack"},"voice":"dry-comedian","overrides":{"humor":1,"sarcasm":1}}));
     let e = with(
-        json!({"intent":"Waiting for approval.","context":ordinary(),"blend":["witty-engineer"]}),
+        json!({"intent":"Work is blocked pending approval.","context":ordinary(),"blend":["witty-engineer"]}),
         c,
     );
     assert_eq!(e.data.plan.route.voices[0], "dry-comedian");
@@ -49,7 +49,8 @@ fn unknown_context_falls_back_without_claiming_inferred_audience_or_language() {
     assert_eq!(e.data.plan.context.audience, Audience::Unknown);
     assert_eq!(e.data.plan.context.energy, Energy::Unknown);
     assert_eq!(e.data.plan.context.language, "pt-BR");
-    assert_eq!(e.data.plan.humor.mode, HumorMode::Off);
+    assert_eq!(e.data.plan.humor.mode, HumorMode::Optional);
+    assert_eq!(e.data.plan.route.traits.sarcasm, 0.0);
 }
 #[test]
 fn language_profile_stays_separate_neutral_voice_retains_base_traits() {
