@@ -310,8 +310,7 @@ fn constrain_humor_for_route(
             styles: ["understatement", "dry observation"]
                 .map(String::from)
                 .to_vec(),
-            reason: "An eligible Chandler Slack reply calls for one light contextual observation."
-                .into(),
+            reason: "An eligible Chandler Slack reply calls for light wit in the wording.".into(),
         };
     }
     HumorDecision {
