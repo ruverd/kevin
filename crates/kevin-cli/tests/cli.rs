@@ -521,7 +521,7 @@ fn relocated_native_binary_installs_complete_skill_without_checkout_or_node() {
 #[test]
 fn evaluation_runs_all_original_scenarios_and_records_optional_fixture_outputs() {
     let dir = tempfile::tempdir().unwrap();
-    assert!(ok(dir.path(), &["eval"], "").contains("30 routing scenarios passed"));
+    assert!(ok(dir.path(), &["eval"], "").contains("40 routing scenarios passed"));
     ok(
         dir.path(),
         &[
@@ -543,7 +543,7 @@ fn evaluation_runs_all_original_scenarios_and_records_optional_fixture_outputs()
     assert_eq!(files.len(), 1);
     let data: serde_json::Value =
         serde_json::from_slice(&fs::read(files[0].as_ref().unwrap().path()).unwrap()).unwrap();
-    assert_eq!(data["records"].as_array().unwrap().len(), 30);
+    assert_eq!(data["records"].as_array().unwrap().len(), 40);
     assert!(
         data["records"]
             .as_array()
@@ -646,7 +646,7 @@ fn first_use_has_starter_voices_without_setup_and_explicit_changes_persist() {
     assert_eq!(list["voices"]["chandler"]["extends"], "friendly-teammate");
     let e = value(cwd, &["reply", "--intent", "Explain this.", "--json"], "");
     assert_eq!(e["data"]["plan"]["route"]["voices"], json!(["tony-stark"]));
-    assert_eq!(e["data"]["plan"]["humor"]["mode"], "off");
+    assert_eq!(e["data"]["plan"]["humor"]["mode"], "optional");
     assert!(!cwd.join(".kevin").exists());
     ok(cwd, &["voice", "default", "minimalist"], "");
     assert!(cwd.join(".kevin/config.json").exists());

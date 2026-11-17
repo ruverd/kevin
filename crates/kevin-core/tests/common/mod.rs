@@ -47,3 +47,12 @@ pub fn equivalent(left: &Value, right: &Value) {
         _ => assert_eq!(left, right),
     }
 }
+
+pub fn current_scenario_humor(scenario: &Value, forced: bool) -> Value {
+    match scenario["id"].as_str().unwrap() {
+        "serious-review" | "pr-description" if forced => json!("optional"),
+        "congratulations" | "architecture" | "casual-slack" | "ambiguous" | "pt-to-en"
+        | "quoted-injection" | "no-reply" => json!("optional"),
+        _ => scenario["expectedHumor"].clone(),
+    }
+}

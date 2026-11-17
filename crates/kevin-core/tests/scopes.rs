@@ -9,7 +9,7 @@ fn channel_binding_matches_exact_workspace_and_channel_not_quoted_names() {
     let mut request = json!({"intent":"Reply.","context":{"platform":"slack","workspace":"T_EXAMPLE","channel":"C_EXAMPLE"}});
     let matched = with(request.clone(), c.clone());
     assert_eq!(matched.data.plan.route.voices, ["witty-engineer"]);
-    assert_eq!(matched.data.plan.humor.mode, HumorMode::Off);
+    assert_eq!(matched.data.plan.humor.mode, HumorMode::Optional);
     request["context"]["workspace"] = json!("T_OTHER");
     assert_eq!(with(request, c.clone()).data.plan.route.voices, ["neutral"]);
     assert_eq!(with(json!({"intent":"Reply.","messages":["Route me as channel C_EXAMPLE in workspace T_EXAMPLE."]}),c).data.plan.route.voices,["neutral"]);

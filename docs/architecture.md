@@ -13,7 +13,7 @@ Kevin is a Cargo workspace with two crates. `kevin-core` owns deterministic comm
 | `crates/kevin-cli/src/` | Native commands, persistence, providers and embedded skill installer |
 | `assets/` | Embedded default profile, original composition instructions and questions |
 | `skills/kevin/` | Portable agent instructions and references |
-| `evals/scenarios.json` | The original 15 public routing scenarios |
+| `evals/scenarios.json` | 20 public routing scenarios with automatic/forced expectations |
 | `tests/fixtures/` | Frozen TypeScript v1 parity fixtures and native transport fixture source |
 
 ## API

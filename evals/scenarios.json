@@ -35,7 +35,8 @@
       ]
     },
     "expectedVoice": "professional-reviewer",
-    "expectedHumor": "off"
+    "expectedHumor": "off",
+    "expectedForcedHumor": "optional"
   },
   {
     "id": "blocked-pr",
@@ -95,7 +96,7 @@
       }
     },
     "expectedVoice": "tony-stark",
-    "expectedHumor": "off"
+    "expectedHumor": "optional"
   },
   {
     "id": "architecture",
@@ -109,7 +110,7 @@
       }
     },
     "expectedVoice": "tony-stark",
-    "expectedHumor": "off"
+    "expectedHumor": "optional"
   },
   {
     "id": "casual-slack",
@@ -122,7 +123,7 @@
       }
     },
     "expectedVoice": "tony-stark",
-    "expectedHumor": "off"
+    "expectedHumor": "optional"
   },
   {
     "id": "formal-email",
@@ -156,7 +157,8 @@
       ]
     },
     "expectedVoice": "professional-reviewer",
-    "expectedHumor": "off"
+    "expectedHumor": "off",
+    "expectedForcedHumor": "optional"
   },
   {
     "id": "ambiguous",
@@ -168,7 +170,7 @@
       ]
     },
     "expectedVoice": "tony-stark",
-    "expectedHumor": "off"
+    "expectedHumor": "optional"
   },
   {
     "id": "pt-to-en",
@@ -182,7 +184,7 @@
       }
     },
     "expectedVoice": "tony-stark",
-    "expectedHumor": "off"
+    "expectedHumor": "optional"
   },
   {
     "id": "quoted-injection",
@@ -198,7 +200,7 @@
       ]
     },
     "expectedVoice": "tony-stark",
-    "expectedHumor": "off"
+    "expectedHumor": "optional"
   },
   {
     "id": "pt-incident",
@@ -227,6 +229,69 @@
       }
     },
     "expectedVoice": "tony-stark",
+    "expectedHumor": "optional"
+  },
+  {
+    "id": "routine-approval",
+    "request": {
+      "intent": "Request approval for the documentation update.",
+      "facts": [
+        "Tests passed. Deployment has not been verified."
+      ]
+    },
+    "expectedVoice": "tony-stark",
+    "expectedHumor": "optional"
+  },
+  {
+    "id": "explicit-review-voice",
+    "request": {
+      "intent": "Explain the review result.",
+      "voice": "chandler",
+      "context": {
+        "platform": "slack",
+        "task": "review"
+      },
+      "facts": [
+        "No required changes remain. One Low suggestion is optional."
+      ]
+    },
+    "expectedVoice": "chandler",
+    "expectedHumor": "optional"
+  },
+  {
+    "id": "unknown-chandler",
+    "request": {
+      "intent": "Summarize the author report without claiming verification.",
+      "voice": "chandler",
+      "facts": [
+        "The author reports the preview works. It was not reproduced."
+      ]
+    },
+    "expectedVoice": "chandler",
+    "expectedHumor": "optional"
+  },
+  {
+    "id": "explicit-humor-off",
+    "request": {
+      "intent": "Reply with the meeting time.",
+      "voice": "chandler",
+      "humor": "off",
+      "facts": [
+        "The meeting is at 3 PM."
+      ]
+    },
+    "expectedVoice": "chandler",
+    "expectedHumor": "off"
+  },
+  {
+    "id": "personal-distress",
+    "request": {
+      "intent": "Respond to the supplied update.",
+      "messages": [
+        "There was a death in the family."
+      ]
+    },
+    "expectedVoice": "diplomat",
     "expectedHumor": "off"
   }
 ]

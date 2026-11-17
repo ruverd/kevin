@@ -47,7 +47,7 @@
     {
       "id": "humor",
       "prompt": "When an ordinary teammate exchange invites humor, what fits?",
-      "why": "Humor stays optional and is disabled for serious, blocked or uncertain contexts.",
+      "why": "Humor stays optional. Incidents, security findings, blocked work and sensitive situations disable it; reviews and missing context alone do not.",
       "recommended": "none",
       "options": [
         {

@@ -28,7 +28,7 @@ Keep distinct:
 - Inferences from samples: tentative observations with evidence and confidence. Do not persist automatically.
 - Current thread: temporary context, not a new permanent identity.
 
-Without a profile, use the user's requested style or the bundled `tony-stark` starter: a confident, concise engineer with optional dry humor, never copied dialogue. This is a configurable starting voice, not a learned identity. Context limits still turn humor off when stakes or audience are unknown. Do not claim to have learned the user's voice from a few instructions.
+Without a profile, use the user's requested style or the bundled `tony-stark` starter: a confident, concise engineer with optional dry humor, never copied dialogue. This is a configurable starting voice, not a learned identity. Missing stakes or audience do not alone disable humor; keep any wit light and sarcasm off until ordinary stakes, a known audience and existing banter are supplied. Do not claim to have learned the user's voice from a few instructions.
 
 For profile structure, manual customization or calibration, read [identity.md](references/identity.md). For current composition, no calibration is required.
 
@@ -60,15 +60,15 @@ Read [voices.md](references/voices.md) when selecting or defining an unfamiliar 
 
 ## Decide whether humor helps
 
-Disable humor and sarcasm for incidents, security findings, data loss, blocked work, approval requests, sensitive disagreements or tense exchanges. A forced humorous voice does not override this limit. Explicit user request for no humor always wins.
+Disable humor and sarcasm for incidents, security findings, data loss, blocked work, personal distress, sensitive disagreements, serious corrections or tense exchanges. Explicit user request for no humor always wins. Keep humor off for external or public audiences and when the effective profile intensity is zero. A forced humorous voice cannot override these limits.
 
-For Slack replies, when the winning rule explicitly matches Slack and assigns the explicitly requested voice, follow its approved humor preferences even without existing banter. If stakes or audience are unknown, keep permitted humor light and free of sarcasm. Keep humor off for external or public audiences, technical reviews and PR descriptions. Outside that configured Slack reply case, unknown stakes or audience keep humor off.
+Technical reviews, PR descriptions, routine approval requests and incomplete or uncertain context do not alone disable humor. Missing information is not confirmed risk. Preserve the verdict, findings, severity, evidence, attribution and every qualification. A routine approval is not an incident; drafting one still does not authorize posting a review or merging.
 
-When Chandler is selected for a routine Slack reply and the context permits humor, make the reply itself lightly witty. This applies to routine review updates, including changes requested, and needs no prior banter. Follow the selected voice and effective humor intensity. Phrase one necessary part of the answer with a touch of situational wit and keep it in place as part of the explanation. End once the reply has answered the thread. Skip punchlines, asides and recaps.
+Apply the same humor limits to manual, automatically routed and fallback voices on every platform. There is no special requirement to repeat a configured Slack voice in the request. The starter review and PR rules still select `professional-reviewer`, whose humor intensity is zero; a manual voice or higher-priority assignment can select another voice. Do not silently rewrite profiles to change this selection.
 
-When the compiled plan requires humor, it takes precedence over voice preferences that make humor optional. Preserve the verdict, findings, severity and evidence. Keep humor off for personal distress, sensitive topics and serious corrections. Stay within the sarcasm limit and avoid invented experiences, ridicule and copied dialogue. Outside this Chandler case, humor remains optional where permitted.
+Permitted humor is always optional, including Chandler Slack replies and existing banter. Follow the selected voice and effective intensity. If wit helps, give one phrase that already carries a necessary fact, reason or next step a lightly witty turn. Keep it about the situation, never a person. Skip detachable jokes, closing quips, recaps, copied dialogue and invented experiences. At most one small contextual observation per short message. A plain response is always valid; remove humor when it reduces clarity.
 
-In ordinary conversation with a known audience, existing banter may invite a brief dry observation or understatement. Playful energy permits humor; it does not require it. Do not manufacture jokes, default to sarcasm, repeat a punchline, explain a joke, or target a person. At most one small contextual observation per short message. When humor is optional, remove it if doing so improves clarity.
+Sarcasm requires supplied ordinary stakes, a known audience and existing banter. Unknown fields stay unknown. Do not infer intimacy, permission to tease or personal history. Follow existing banter at the same or lower intensity.
 
 ## Compose and check
 

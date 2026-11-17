@@ -9,9 +9,11 @@ cargo test --workspace --locked
 cargo run -p kevin --locked -- eval
 ```
 
-`cargo test --workspace --locked` runs native Rust tests, including ports of all 36 original cases and frozen TypeScript parity fixtures. It includes description-driven voice proposals, question branching, example choices, explicit-save behavior, channel/person routing and global/voice memory filtering, deletion and no implicit capture. `kevin eval` executes 15 public communication scenarios twice, once automatically and once forcing dry-comedian. Expectations cover route choice and humor constraints. A forced voice remains selected while serious-context humor is clamped off.
+`cargo test --workspace --locked` runs native Rust tests, including ports of all 36 original cases and frozen TypeScript parity fixtures. It includes description-driven voice proposals, question branching, example choices, explicit-save behavior, channel/person routing and global/voice memory filtering, deletion and no implicit capture. `kevin eval` executes 20 public communication scenarios twice, once automatically and once forcing dry-comedian. Expectations cover route choice and humor constraints. A forced voice remains selected while serious-context humor is clamped off.
 
-Scenarios include automation banter, a real supplied review finding, blocked approval, production incident, sensitive disagreement, congratulations, architecture debate, casual Slack, formal email, PR description, ambiguous context, Portuguese-to-English reply, quoted injection, Portuguese incident and no-response.
+Scenarios include automation banter, a synthetic review finding, blocked approval, production incident, sensitive disagreement, congratulations, architecture debate, casual Slack, formal email, PR description, ambiguous context, Portuguese-to-English reply, quoted injection, Portuguese incident, no-response, routine approval, an explicit review voice, incomplete context with Chandler, explicit humor-off and personal distress. Auto and forced voice cases can have different humor expectations: the default reviewer has zero humor, while a manually selected humorous voice can permit it.
+
+The humor regression matrix also checks manual/routed/fallback selection, review rule priority, missing metadata, protected strings, blend/override limits and sensitive topics across voices. Frozen migration fixtures remain unchanged; tests enumerate intentional humor-policy deltas while comparing every other field.
 
 These tests establish program behavior. They do not prove humor timing, factual correctness of arbitrary generation, identity match or semantic injection resistance. Command fixtures test transport and validation, not a live model. [Manual skill exercise](../evals/skill-exercise.md) is one transparent agent run, not an independent benchmark.
 
@@ -31,6 +33,8 @@ kevin eval \
 The settings label is recorded, not applied to an arbitrary provider. Configure the generator itself accordingly; the bundled bridge sets temperature and seed. Record provider version and model digest in that label for reproducibility. Model runs are optional, explicit invocations and can consume resources. Nothing runs automatically in CI.
 
 Each record includes fixture ID, forced/auto mode, exact envelope, output or error, duration and `semanticReview: pending`. The run records model label, settings and command. Files use restrictive permissions and live under an ignored destination by convention. Do not use private examples in a shareable run without permission. Errors cause a failing exit status while preserving records for inspection.
+
+Use the [synthetic calibration pairs](../evals/humor-calibration.md) to compare wording while preserving facts. They are candidate drafts, not measured model outputs or saved preferences.
 
 ## Human review rubric
 

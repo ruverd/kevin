@@ -123,7 +123,7 @@ This returns one draft. Kevin does not post it anywhere. For agent-native genera
 | `dry-comedian` | Ordinary exchanges that already invite humor | Understatement and restrained irony |
 | `neutral` | An explicit base-identity voice | No added personality overlay |
 
-The Stark-inspired and Chandler-inspired voices use reusable traits, not copied dialogue, catchphrases or claims to be the characters. Chandler follows an existing joke without escalating it, keeps self-deprecation light and occasional, and avoids implying incompetence or inventing personal mishaps. Humor is optional. Reviews, incidents, blocked work and tense exchanges keep humor off. When a matching Slack rule assigns the explicitly requested voice, replies can use light, optional humor even if the stakes or audience are unknown.
+The Stark-inspired and Chandler-inspired voices use reusable traits, not copied dialogue, catchphrases or claims to be the characters. Chandler follows an existing joke without escalating it, keeps self-deprecation light and occasional, and avoids implying incompetence or inventing personal mishaps. Humor is optional. Incidents, security findings, blocked work, sensitive situations and tense exchanges keep humor off. Technical reviews, routine approvals and missing context do not alone disable it. Manual, routed and fallback voices share these limits. The starter review/PR rules still select `professional-reviewer` with zero humor; choose another voice explicitly or configure a higher-priority rule to change that selection. Unknown stakes or audience keep sarcasm off. See [synthetic calibration pairs](evals/humor-calibration.md) for examples with the same facts.
 
 ```bash
 kevin voices                         # Names and descriptions; default is marked
@@ -320,7 +320,7 @@ cargo test --workspace --locked
 cargo run -p kevin --locked -- eval
 ```
 
-All 36 original cases were ported. Frozen fixtures compare 34 original composition envelopes and five interview states; the original 30 routing cases still run with their original profile. Additional tests cover new defaults, first use, native distribution, subprocess bounds, scope isolation and the consumer review example. The current starter pack also has 30 automatic/forced routing evaluation cases.
+All 36 original cases were ported. Frozen fixtures compare 34 original composition envelopes with explicit humor-policy deltas and five interview states; the original 30 routing cases still verify voice selection with their original profile and updated humor expectations. Additional tests cover new defaults, first use, native distribution, subprocess bounds, scope isolation and the consumer review example. The current starter pack also has 40 automatic/forced routing evaluation cases.
 
 Tests establish deterministic program behavior, not model naturalness or semantic fidelity. Ollama transport tests use a real loopback protocol fixture; live model quality and cross-model certification remain pending. [Evaluation guide](docs/evaluation.md) defines optional recorded model runs and a human review rubric. [Manual skill exercise](evals/skill-exercise.md) is an author-run sample, not an independent benchmark.
 
