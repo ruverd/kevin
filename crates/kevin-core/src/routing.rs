@@ -260,9 +260,16 @@ pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) 
         } else {
             HumorMode::Optional
         },
-        styles: ["understatement", "dry observation", "playful exaggeration"]
-            .map(String::from)
-            .to_vec(),
+        styles: [
+            "understatement",
+            "dry observation",
+            "playful exaggeration",
+            "situational irony",
+            "brief personification",
+            "expectation reversal",
+        ]
+        .map(String::from)
+        .to_vec(),
         reason: "Humor may fit; omit it whenever forced or less clear than a plain reply.".into(),
     }
 }

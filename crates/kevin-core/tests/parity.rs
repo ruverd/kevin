@@ -54,6 +54,16 @@ fn typescript_v1_envelopes_preserve_non_policy_fields_across_34_baselines() {
             expected["data"]["plan"]["humor"]["reason"] =
                 json!("Seriousness is sensitive or critical.");
         }
+        if expected["data"]["plan"]["humor"]["mode"] != "off" {
+            expected["data"]["plan"]["humor"]["styles"]
+                .as_array_mut()
+                .unwrap()
+                .extend([
+                    json!("situational irony"),
+                    json!("brief personification"),
+                    json!("expectation reversal"),
+                ]);
+        }
         equivalent(&serde_json::to_value(result).unwrap(), &expected);
     }
 }

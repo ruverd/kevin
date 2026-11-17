@@ -34,7 +34,7 @@ The settings label is recorded, not applied to an arbitrary provider. Configure 
 
 Each record includes fixture ID, forced/auto mode, exact envelope, output or error, duration and `semanticReview: pending`. The run records model label, settings and command. Files use restrictive permissions and live under an ignored destination by convention. Do not use private examples in a shareable run without permission. Errors cause a failing exit status while preserving records for inspection.
 
-Use the [synthetic calibration pairs](../evals/humor-calibration.md) to compare wording while preserving facts. They are candidate drafts, not measured model outputs or saved preferences.
+Use the [synthetic calibration pairs](../evals/humor-calibration.md) to compare wording while preserving facts. They are candidate drafts, not measured model outputs or saved preferences. `evals/character-voices.json` supplies four compatibility cases and three paired cases (including a two-turn nontechnical callback). Core/CLI tests check delivery of the voice cards, history and attribution labels, protected strings, instruction compatibility, package parity and preservation of saved profiles. The host-authored candidates and editorial observations are a qualitative exercise, not an independent benchmark.
 
 ## Human review rubric
 

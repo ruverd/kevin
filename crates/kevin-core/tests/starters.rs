@@ -119,10 +119,12 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
     assert_eq!(envelope.data.request, parsed);
     let prompt = render_prompt(&envelope).unwrap();
     assert!(prompt.contains("Permitted humor is always optional"));
-    assert!(prompt.contains("already carries a necessary fact, reason or next step"));
-    assert!(prompt.contains("Skip detachable jokes"));
-    assert!(prompt.contains("plan.humor.styles and plan.route.traits.humor"));
-    assert!(prompt.contains("A plain response is always valid"));
+    assert!(
+        prompt.contains("A short closing sentence or aside may carry the humorous observation")
+    );
+    assert!(prompt.contains("It need not contain a new fact"));
+    assert!(prompt.contains("plan.humor.styles, plan.route.traits.humor"));
+    assert!(prompt.contains("not permission to ignore the selected personality"));
     assert!(prompt.contains(r#""humor": 0.5"#));
     assert!(prompt.contains(r#""mode": "optional""#));
     for fact in request["facts"].as_array().unwrap() {

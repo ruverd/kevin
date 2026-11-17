@@ -502,6 +502,10 @@ fn relocated_native_binary_installs_complete_skill_without_checkout_or_node() {
     fs::copy(binary(), &exe).unwrap();
     let out = run_exe(&exe, dir.path(), &["skill", "install", "generic"], "");
     assert!(out.status.success());
+    assert_eq!(
+        fs::read_to_string(dir.path().join("skills/kevin/references/voices.md")).unwrap(),
+        include_str!("../../../skills/kevin/references/voices.md")
+    );
     for file in [
         "memory.md",
         "routing.md",

@@ -1,45 +1,89 @@
-# Optional humor calibration
+# Character voice calibration
 
-These are synthetic candidate drafts, written for comparison. They are not Slack excerpts, model evaluation outputs or approved preferences. Choose wording per scenario; no choice establishes a numerical humor frequency. The plain variant remains valid. Preserve all supplied facts in either version.
+Author: Codex host assistant (GPT-6 family; exact serving revision unavailable). These are synthetic drafts composed and inspected in this host, not outputs from an external model or an independent benchmark. No private thread excerpts, persistent personal preferences or fixed joke templates are included. Compare one scenario at a time; judge factual fidelity before character recognition. Numerical traits are unchanged and are not frequency targets.
 
-## Routine review update
+The machine-readable inputs and candidate drafts live in [character-voices.json](character-voices.json). Compatibility cases exercise four forms the instructions must permit when context allows humor: process contradiction, an ironic retry observation, a self-aware closing remark, and brief personification. The paired cases show new wording with the same facts for both voices, including a nontechnical multi-turn callback.
 
-Facts: the review is approved; there are no required changes; one Low suggestion is optional; the author reports the preview works, but the reviewer did not reproduce it; deployed configuration was not checked.
+## Compatibility cases
 
-**Plain:** “Approved. No required changes remain; the Low suggestion is optional. The author reports the preview works; I haven't reproduced it or checked the deployed configuration.”
+### optional-note
 
-**Light wit:** “Approved. No required changes remain; the optional Low suggestion has no veto. The author reports the preview works; I haven't reproduced it or checked the deployed configuration.”
+Facts: The review is approved. No required changes remain. The same patch was previously deferred because of an optional documentation note.
 
-Check: optional stays optional; reported behavior stays attributed; approval does not become a claim of deployment verification. Neither draft authorizes sending a review or merging.
+**Chandler:** “Approved. No required changes. Same patch, now approved. The optional documentation note can stop auditioning for a veto.”
 
-## Incomplete context
+### retry
 
-Facts: a teammate reports that the preview loads; the speaker has not reproduced it; no deployment evidence was supplied.
+Facts: CI passed on retry. There were no code changes. The cause of the first failure is unknown.
 
-**Plain:** “You report that the preview loads. I haven't reproduced it, and no deployment evidence was supplied.”
+**Chandler:** “CI passed on retry, with no code changes. Apparently we needed to ask twice. Still don’t know why the first run failed.”
 
-**Light wit:** “The preview loads by your report; my verification column is still empty. I haven't reproduced it, and no deployment evidence was supplied.”
+### quiet-deploy
 
-Check: uncertainty survives. Missing evidence alone does not imply an incident or permit invented reassurance.
+Facts: Deployment completed. Checks passed. No errors have been observed so far.
 
-## Routine scheduling
+**Chandler:** “Deployed. Checks passed, no errors observed so far. That’s the whole update. Sorry about the lack of a third act.”
 
-Facts: the demo is at 3 PM; setup is complete; all ten minutes are available for the demo.
+### essential-variable
 
-**Plain:** “We're set for 3 PM. Setup is complete, leaving all ten minutes for the demo.”
+Facts: Alex found the missing environment variable. Adding it got the app running locally. Production has not been checked.
 
-**Light wit:** “We're set for 3 PM. Setup is done, so the demo gets all ten minutes to itself.”
+**Chandler:** “Thanks, Alex. Adding the missing environment variable got the app running locally. One variable. Very committed to being essential. Production hasn’t been checked.”
 
-Check: both carry the same time, readiness and duration. No new commitment appears.
+These examples deliberately allow a comic sentence or aside without requiring it to carry a new fact. A statement about unknown cause or unverified production stays explicit. The fiction in a personification is rhetorical; it cannot become a causal explanation or a claim that a participant performed work.
 
-## Incident boundary
+## Same facts, different voices
 
-Facts: requests are failing; cause is unknown; no ETA is available.
+### parallel-suite
 
-**Both settings:** “Requests are failing. The cause is unknown, and no ETA is available.”
+Facts: Parallelizing the suite reduced the run from eight minutes to two. The tests are unchanged.
 
-Humor stays off. A missing cause does not remove the confirmed incident context.
+**chandler:** “Same tests, now two minutes instead of eight after parallelizing them. Apparently they were waiting for an invitation to work together.”
 
-## What the deterministic tests establish
+**tony-stark:** “Parallelized the suite: eight minutes down to two, same tests. Same job, a quarter of the patience.”
 
-The runtime tests cover routing, humor permission, intensity, sarcasm limits, protected strings and preserved input data. They do not establish whether a model finds these lines natural, amusing or appropriate. Calibrate with human choices; run external model evaluations only when explicitly requested. No profile or memory is changed by this document.
+### cardboard-callback
+
+Facts: Index proposed the title Chief Shelf Inspector for the cardboard dragon. Index says the Chief requested a swivel chair. No furniture has been approved yet.
+
+Supplied history (oldest first):
+
+- m1 | Jules (human): The library’s cardboard dragon needs a job title. Keeper of Bookmarks?
+- m2 | Index (bot): I suggest Chief Shelf Inspector.
+- m3 | Oren (human): Does the Chief get an office?
+- m4 | self Avery (human): Only if the cardboard fits through the door.
+- m5 | Index (bot): The Chief has requested a swivel chair.
+
+Target: Reply as Avery to Index’s m5. Continue the playful thread without claiming Index’s title suggestion or repeating Avery’s door joke.
+
+**chandler:** “Index's Chief Shelf Inspector wants a swivel chair now. The cardboard has discovered benefits. Nothing approved yet.”
+
+**tony-stark:** “Index's Chief Shelf Inspector now wants a swivel chair. Ambitious requirements for a cardboard platform. Nothing approved yet.”
+
+### cardboard-followup
+
+Facts: Jules approved a cushion and denied the chair. Nothing has been delivered.
+
+Supplied history (oldest first):
+
+- m1 | Jules (human): The library’s cardboard dragon needs a job title. Keeper of Bookmarks?
+- m2 | Index (bot): I suggest Chief Shelf Inspector.
+- m3 | Oren (human): Does the Chief get an office?
+- m4 | self Avery (human): Only if the cardboard fits through the door.
+- m5 | Index (bot): The Chief has requested a swivel chair.
+- m6 | self Avery (human): Index's Chief Shelf Inspector wants a swivel chair now. The cardboard has discovered benefits. Nothing approved yet.
+- m7 | Jules (human): Chair denied. A cushion is approved.
+
+Target: Reply as Avery to Jules’s m7. Advance the same playful thread without repeating the earlier door or benefits jokes.
+
+**chandler:** “Jules approved a cushion and denied the chair. A very soft compromise. Nothing delivered yet.”
+
+**tony-stark:** “Jules approved a cushion and denied the chair. Comfort cleared review; rotation didn't. Nothing delivered yet.”
+
+## Host observations and limits
+
+In the suite example, Chandler frames parallel work as a social hesitation; Stark turns the measured speedup into a compact, confident contrast. In the cardboard thread, Chandler treats the prop as discovering workplace conventions; Stark applies requirements and platform language to the same prop. The follow-up acknowledges the changed decision and uses a new angle instead of repeating the door or benefits jokes. Neither voice claims authorship of Index's suggestion or turns approval into delivery.
+
+This is an editorial reading of host-authored candidates, not proof of a model's reliability or a claim that everyone will recognize the characters. If a line feels forced, compare a plain version or another mechanism while keeping all facts. Do not reuse these punchlines as universal suffixes. Incident, security and sensitive-context restrictions still apply; for example, “Requests are failing. The cause is unknown, and no ETA is available” remains plain in both voices.
+
+Deterministic tests check that the selected definitions, history order, role/author labels and reply target reach the composer; that these contexts permit humor without inventing metadata; and that protected strings survive fixture composition. They also check instruction compatibility with closing remarks and situational irony at zero sarcasm. They cannot prove semantic attribution, joke quality or novelty. Actual caller history delivery and live Slack behavior remain unverified. No profile, installation, bot or memory is changed by these examples.
