@@ -166,6 +166,7 @@ context_enum!(Audience, Unknown, [Teammate, Manager, External, Public]);
 context_enum!(Seriousness, Unknown, [Ordinary, Sensitive, Critical]);
 context_enum!(Energy, Unknown, [Calm, Playful, Tense]);
 context_enum!(HumorSetting, Auto, [Off]);
+context_enum!(HumorExceptions, Standard, [Personal]);
 
 pub fn primary_language() -> String {
     "en-US".into()
@@ -385,8 +386,16 @@ impl ContextInput {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
+pub struct HumorPolicy {
+    pub minimum: f64,
+    #[serde(default)]
+    pub exceptions: HumorExceptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Rule {
     pub name: String,
     #[serde(default, deserialize_with = "safe_integer")]
@@ -395,6 +404,12 @@ pub struct Rule {
     pub voice: String,
     #[serde(default)]
     pub overrides: PartialTraits,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "non_null"
+    )]
+    pub humor_policy: Option<HumorPolicy>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(deny_unknown_fields)]

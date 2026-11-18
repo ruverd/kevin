@@ -112,7 +112,7 @@ fn ordinary_approval_and_unverified_claims_keep_uncertainty_and_exact_evidence()
         for fact in &parsed.facts {
             assert!(prompt.contains(fact));
         }
-        assert!(prompt.contains("Permitted humor is always optional"));
+        assert!(prompt.contains("Permitted humor is optional unless"));
         assert!(
             compose(&envelope, &|_: &Envelope| Ok(
                 json!({"status":"draft", "text":"Low: looks good."})
@@ -158,4 +158,58 @@ fn sensitive_content_clamps_every_voice_even_with_high_priority_overrides_and_bl
             }
         }
     }
+}
+
+#[test]
+fn configured_floor_applies_to_matching_routes_and_preserves_explicit_limits() {
+    let mut config = default_config();
+    config.routing.rules.push(
+        parse(json!({
+            "name": "team", "priority": 110,
+            "when": {"platform":"slack", "channel":"C_EXAMPLE"},
+            "voice": "chandler", "humorPolicy": {"minimum":0.6, "exceptions":"personal"}
+        }))
+        .unwrap(),
+    );
+    let request = json!({
+        "intent":"Share the operational update.",
+        "messages":["Security incident blocked staging."],
+        "context":{"platform":"slack","channel":"C_EXAMPLE","audience":"teammate","energy":"tense"}
+    });
+    let result = plan(request.clone(), &config);
+    assert_eq!(result.humor.mode, HumorMode::Required);
+    assert_eq!(result.humor.policy.unwrap().minimum, 0.6);
+    assert_eq!(result.route.traits.humor, 0.6);
+    assert_eq!(result.route.traits.sarcasm, 0.0);
+    for (key, value) in [
+        ("seriousness", "sensitive"),
+        ("audience", "external"),
+        ("channel", "C_OTHER"),
+        ("platform", "github"),
+    ] {
+        let mut variant = request.clone();
+        variant["context"][key] = json!(value);
+        assert_eq!(plan(variant, &config).humor.mode, HumorMode::Off, "{key}");
+    }
+    let mut disabled = request.clone();
+    disabled["humor"] = json!("off");
+    assert_eq!(plan(disabled, &config).humor.mode, HumorMode::Off);
+    let mut manual = request.clone();
+    manual["voice"] = json!("chandler");
+    assert_eq!(plan(manual, &config).humor.mode, HumorMode::Off);
+
+    config
+        .routing
+        .rules
+        .last_mut()
+        .unwrap()
+        .humor_policy
+        .as_mut()
+        .unwrap()
+        .exceptions = HumorExceptions::Standard;
+    assert_eq!(plan(request.clone(), &config).humor.mode, HumorMode::Off);
+    let mut routine = request;
+    routine["messages"] = json!(["Build passed."]);
+    routine["context"]["energy"] = json!("calm");
+    assert_eq!(plan(routine, &config).humor.mode, HumorMode::Required);
 }
