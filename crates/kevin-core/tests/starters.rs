@@ -118,7 +118,7 @@ fn assigned_chandler_uses_light_humor_for_routine_slack_review_replies() {
     let envelope = compile_typed(&parsed, &config, &Memory::default()).unwrap();
     assert_eq!(envelope.data.request, parsed);
     let prompt = render_prompt(&envelope).unwrap();
-    assert!(prompt.contains("Permitted humor is always optional"));
+    assert!(prompt.contains("Permitted humor is optional unless"));
     assert!(
         prompt.contains("A short closing sentence or aside may carry the humorous observation")
     );

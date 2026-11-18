@@ -155,6 +155,13 @@ impl Validate for Rule {
         )?;
         voice_id(&self.voice)?;
         self.when.validate()?;
+        if let Some(policy) = self.humor_policy {
+            unit(policy.minimum)?;
+            check(
+                policy.minimum > 0.0,
+                "Humor minimum must be greater than zero",
+            )?;
+        }
         self.overrides.validate()
     }
 }

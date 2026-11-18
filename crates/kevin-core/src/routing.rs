@@ -57,7 +57,6 @@ pub enum HumorMode {
     Off,
     Optional,
     Invited,
-    /// Retained for decoding older plans; current routing never requires humor.
     Required,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -65,10 +64,25 @@ pub struct HumorDecision {
     pub mode: HumorMode,
     pub styles: Vec<String>,
     pub reason: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub policy: Option<HumorPolicy>,
 }
 
 pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
     let mut context = request.context.resolve(&config.identity.primary_language);
+    let mut reasons = vec![];
+    if request.voice.is_none()
+        && matching_rule(config, &context)
+            .ok()
+            .flatten()
+            .and_then(|rule| rule.humor_policy)
+            .is_some_and(|policy| policy.exceptions == HumorExceptions::Personal)
+    {
+        reasons.push(
+            "Use supplied context and assess personal sensitivity during composition.".into(),
+        );
+        return finish_analysis(context, reasons);
+    }
     let content = std::iter::once(request.intent.as_str())
         .chain(std::iter::once(request.draft.as_deref().unwrap_or("")))
         .chain(request.facts.iter().map(String::as_str))
@@ -76,7 +90,6 @@ pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
         .collect::<Vec<_>>()
         .join("\n");
     let assessment_text = HOSTNAME.replace_all(&content, " ");
-    let mut reasons = vec![];
     if CRITICAL.is_match(&assessment_text) {
         context.seriousness = Seriousness::Critical;
         reasons.push("Conservative critical-topic detection.".into());
@@ -88,6 +101,10 @@ pub fn analyze_context(request: &Request, config: &Config) -> Analysis {
         context.seriousness = Seriousness::Sensitive;
         reasons.push("Conservative sensitive-topic detection.".into());
     }
+    finish_analysis(context, reasons)
+}
+
+fn finish_analysis(context: Context, mut reasons: Vec<String>) -> Analysis {
     let low = context.seriousness == Seriousness::Unknown || context.platform == Platform::Unknown;
     if low {
         reasons.push("Incomplete context: use matching configured rules or the default.".into());
@@ -218,11 +235,24 @@ pub(crate) fn plan_route(
     config: &Config,
     analysis: &Analysis,
 ) -> Result<(Route, HumorDecision)> {
-    let mut route = route_voice(request, config, analysis)?;
-    let humor = constrain_humor(request, &analysis.context, &mut route);
+    let (mut route, rule) = route_with_rule(request, config, analysis)?;
+    let policy = rule
+        .filter(|_| request.voice.is_none())
+        .and_then(|rule| rule.humor_policy);
+    let humor = constrain_humor_with_policy(request, &analysis.context, &mut route, policy);
     Ok((route, humor))
 }
 pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) -> HumorDecision {
+    constrain_humor_with_policy(request, context, route, None)
+}
+
+fn constrain_humor_with_policy(
+    request: &Request,
+    context: &Context,
+    route: &mut Route,
+    policy: Option<HumorPolicy>,
+) -> HumorDecision {
+    let personal_only = policy.is_some_and(|policy| policy.exceptions == HumorExceptions::Personal);
     let reason = if request.humor == HumorSetting::Off {
         Some("User disabled humor.")
     } else if matches!(
@@ -230,7 +260,7 @@ pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) 
         Seriousness::Sensitive | Seriousness::Critical
     ) {
         Some("Seriousness is sensitive or critical.")
-    } else if context.energy == Energy::Tense {
+    } else if context.energy == Energy::Tense && !personal_only {
         Some("Tense context.")
     } else if matches!(context.audience, Audience::External | Audience::Public) {
         Some("No established audience permission for humor.")
@@ -246,6 +276,7 @@ pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) 
             mode: HumorMode::Off,
             styles: vec![],
             reason: reason.into(),
+            policy,
         };
     }
     let invited = context.existing_humor
@@ -254,8 +285,13 @@ pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) 
     if !invited {
         route.traits.sarcasm = 0.0;
     }
+    if let Some(policy) = policy {
+        route.traits.humor = route.traits.humor.max(policy.minimum);
+    }
     HumorDecision {
-        mode: if invited {
+        mode: if policy.is_some() {
+            HumorMode::Required
+        } else if invited {
             HumorMode::Invited
         } else {
             HumorMode::Optional
@@ -270,6 +306,12 @@ pub fn constrain_humor(request: &Request, context: &Context, route: &mut Route) 
         ]
         .map(String::from)
         .to_vec(),
-        reason: "Humor may fit; omit it whenever forced or less clear than a plain reply.".into(),
+        reason: if policy.is_some() {
+            "Use one grounded comic turn at or above the configured minimum."
+        } else {
+            "Humor may fit; omit it whenever forced or less clear than a plain reply."
+        }
+        .into(),
+        policy,
     }
 }
